@@ -48,7 +48,7 @@ app.post("/chat/:persona", authenticateUser, requireActiveSubscription, async (r
       dataUsed: response.dataUsed
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Persona chat error:", error);
     res.status(500).json({ error: "Failed to process chat message" });
   }
@@ -87,7 +87,7 @@ app.get("/conversation/:conversationId", authenticateUser, async (req: Authentic
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get conversation error:", error);
     res.status(500).json({ error: "Failed to get conversation" });
   }
@@ -125,7 +125,7 @@ app.get("/conversations", authenticateUser, async (req: AuthenticatedRequest, re
       conversations
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get conversations error:", error);
     res.status(500).json({ error: "Failed to get conversations" });
   }
@@ -178,7 +178,7 @@ app.get("/personas", authenticateUser, async (req: AuthenticatedRequest, res) =>
       personas
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get personas error:", error);
     res.status(500).json({ error: "Failed to get personas" });
   }
@@ -205,7 +205,7 @@ app.delete("/conversation/:conversationId", authenticateUser, async (req: Authen
       message: "Conversation deleted"
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Delete conversation error:", error);
     res.status(500).json({ error: "Failed to delete conversation" });
   }
@@ -250,11 +250,11 @@ app.get("/stats", authenticateUser, async (req: AuthenticatedRequest, res) => {
       stats
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get stats error:", error);
     res.status(500).json({ error: "Failed to get statistics" });
   }
 });
 
-export const personaRoutes = functions.https.onRequest(app);
+export { app as personaRoutes };
 

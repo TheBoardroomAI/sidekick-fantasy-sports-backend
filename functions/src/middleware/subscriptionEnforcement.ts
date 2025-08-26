@@ -1,5 +1,5 @@
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
 
 const db = admin.firestore();
 
@@ -11,54 +11,54 @@ export interface SubscriptionRequirement {
 
 // Subscription tier hierarchy (higher number = higher tier)
 const TIER_HIERARCHY: Record<string, number> = {
-  'rookie': 1,
-  'pro': 2,
-  'champion': 3
+  "rookie": 1,
+  "pro": 2,
+  "champion": 3
 };
 
 // Feature access mapping
 const FEATURE_ACCESS: Record<string, string[]> = {
   // Persona access
-  'persona:rookie': ['rookie', 'pro', 'champion'],
-  'persona:mentor': ['rookie', 'pro', 'champion'],
-  'persona:analyst': ['pro', 'champion'],
-  'persona:oracle': ['pro', 'champion'],
-  'persona:rebel': ['pro', 'champion'],
-  'persona:zane': ['champion'],
+  "persona:rookie": ["rookie", "pro", "champion"],
+  "persona:mentor": ["rookie", "pro", "champion"],
+  "persona:analyst": ["pro", "champion"],
+  "persona:oracle": ["pro", "champion"],
+  "persona:rebel": ["pro", "champion"],
+  "persona:zane": ["champion"],
   
   // Feature access
-  'draft-room': ['pro', 'champion'],
-  'advanced-analytics': ['champion'],
-  'voice-interaction': ['pro', 'champion'],
-  'real-time-updates': ['pro', 'champion'],
-  'priority-support': ['champion'],
-  'unlimited-queries': ['champion']
+  "draft-room": ["pro", "champion"],
+  "advanced-analytics": ["champion"],
+  "voice-interaction": ["pro", "champion"],
+  "real-time-updates": ["pro", "champion"],
+  "priority-support": ["champion"],
+  "unlimited-queries": ["champion"]
 };
 
 // Endpoint access requirements
 const ENDPOINT_REQUIREMENTS: Record<string, SubscriptionRequirement> = {
   // Persona chat endpoints
-  '/personas/oracle/chat': { tiers: ['pro', 'champion'], personaId: 'oracle' },
-  '/personas/rebel/chat': { tiers: ['pro', 'champion'], personaId: 'rebel' },
-  '/personas/analyst/chat': { tiers: ['pro', 'champion'], personaId: 'analyst' },
-  '/personas/zane/chat': { tiers: ['champion'], personaId: 'zane' },
+  "/personas/oracle/chat": { tiers: ["pro", "champion"], personaId: "oracle" },
+  "/personas/rebel/chat": { tiers: ["pro", "champion"], personaId: "rebel" },
+  "/personas/analyst/chat": { tiers: ["pro", "champion"], personaId: "analyst" },
+  "/personas/zane/chat": { tiers: ["champion"], personaId: "zane" },
   
   // Draft room endpoints
-  '/draft-room': { tiers: ['pro', 'champion'], feature: 'draft-room' },
-  '/draft-room/create': { tiers: ['pro', 'champion'], feature: 'draft-room' },
-  '/draft-room/join': { tiers: ['pro', 'champion'], feature: 'draft-room' },
+  "/draft-room": { tiers: ["pro", "champion"], feature: "draft-room" },
+  "/draft-room/create": { tiers: ["pro", "champion"], feature: "draft-room" },
+  "/draft-room/join": { tiers: ["pro", "champion"], feature: "draft-room" },
   
   // Advanced analytics
-  '/data/advanced': { tiers: ['champion'], feature: 'advanced-analytics' },
-  '/analytics/advanced': { tiers: ['champion'], feature: 'advanced-analytics' },
+  "/data/advanced": { tiers: ["champion"], feature: "advanced-analytics" },
+  "/analytics/advanced": { tiers: ["champion"], feature: "advanced-analytics" },
   
   // Voice endpoints
-  '/voice/generate': { tiers: ['pro', 'champion'], feature: 'voice-interaction' },
-  '/voice/clone': { tiers: ['champion'], feature: 'voice-interaction' },
+  "/voice/generate": { tiers: ["pro", "champion"], feature: "voice-interaction" },
+  "/voice/clone": { tiers: ["champion"], feature: "voice-interaction" },
   
   // Real-time endpoints
-  '/realtime/subscribe': { tiers: ['pro', 'champion'], feature: 'real-time-updates' },
-  '/realtime/publish': { tiers: ['pro', 'champion'], feature: 'real-time-updates' }
+  "/realtime/subscribe": { tiers: ["pro", "champion"], feature: "real-time-updates" },
+  "/realtime/publish": { tiers: ["pro", "champion"], feature: "real-time-updates" }
 };
 
 export async function enforceSubscriptionTier(
@@ -72,8 +72,8 @@ export async function enforceSubscriptionTier(
     
     if (!userId) {
       res.status(401).json({
-        error: 'Authentication required',
-        code: 'AUTH_REQUIRED'
+        error: "Authentication required",
+        code: "AUTH_REQUIRED"
       });
       return;
     }
@@ -92,8 +92,8 @@ export async function enforceSubscriptionTier(
     
     if (!userSubscription) {
       res.status(403).json({
-        error: 'Subscription information not found',
-        code: 'SUBSCRIPTION_NOT_FOUND'
+        error: "Subscription information not found",
+        code: "SUBSCRIPTION_NOT_FOUND"
       });
       return;
     }
@@ -105,12 +105,12 @@ export async function enforceSubscriptionTier(
       const requiredTier = getMinimumRequiredTier(requirement.tiers);
       
       res.status(403).json({
-        error: 'Subscription upgrade required',
-        code: 'UPGRADE_REQUIRED',
+        error: "Subscription upgrade required",
+        code: "UPGRADE_REQUIRED",
         currentTier: userSubscription.tier,
         requiredTier,
         feature: requirement.feature || requirement.personaId,
-        upgradeUrl: '/pricing'
+        upgradeUrl: "/pricing"
       });
       return;
     }
@@ -118,10 +118,10 @@ export async function enforceSubscriptionTier(
     // Check if subscription is active
     if (!userSubscription.isActive) {
       res.status(403).json({
-        error: 'Subscription is not active',
-        code: 'SUBSCRIPTION_INACTIVE',
+        error: "Subscription is not active",
+        code: "SUBSCRIPTION_INACTIVE",
         tier: userSubscription.tier,
-        renewUrl: '/billing'
+        renewUrl: "/billing"
       });
       return;
     }
@@ -133,11 +133,11 @@ export async function enforceSubscriptionTier(
     };
 
     if (next) next();
-  } catch (error) {
-    console.error('Subscription enforcement error:', error);
+  } catch (error: any) {
+    console.error("Subscription enforcement error:", error);
     res.status(500).json({
-      error: 'Internal server error',
-      code: 'INTERNAL_ERROR'
+      error: "Internal server error",
+      code: "INTERNAL_ERROR"
     });
   }
 }
@@ -163,8 +163,8 @@ function getEndpointRequirement(path: string, method: string): SubscriptionRequi
 function matchesPattern(path: string, pattern: string): boolean {
   // Convert pattern to regex (simple implementation)
   const regexPattern = pattern
-    .replace(/:\w+/g, '[^/]+') // Replace :param with [^/]+
-    .replace(/\*/g, '.*'); // Replace * with .*
+    .replace(/:\w+/g, "[^/]+") // Replace :param with [^/]+
+    .replace(/\*/g, ".*"); // Replace * with .*
   
   const regex = new RegExp(`^${regexPattern}$`);
   return regex.test(path);
@@ -173,7 +173,7 @@ function matchesPattern(path: string, pattern: string): boolean {
 // Get user subscription from Firestore
 async function getUserSubscription(userId: string) {
   try {
-    const userDoc = await db.collection('users').doc(userId).get();
+    const userDoc = await db.collection("users").doc(userId).get();
     
     if (!userDoc.exists) {
       return null;
@@ -182,14 +182,14 @@ async function getUserSubscription(userId: string) {
     const userData = userDoc.data();
     
     return {
-      tier: userData?.subscriptionTier || 'rookie',
+      tier: userData?.subscriptionTier || "rookie",
       isActive: userData?.subscriptionActive !== false,
       expiresAt: userData?.subscriptionExpiresAt,
       stripeCustomerId: userData?.stripeCustomerId,
-      features: getFeaturesByTier(userData?.subscriptionTier || 'rookie')
+      features: getFeaturesByTier(userData?.subscriptionTier || "rookie")
     };
-  } catch (error) {
-    console.error('Error getting user subscription:', error);
+  } catch (error: any) {
+    console.error("Error getting user subscription:", error);
     return null;
   }
 }
@@ -231,8 +231,8 @@ export function requireSubscription(requirement: SubscriptionRequirement) {
     
     if (!userId) {
       res.status(401).json({
-        error: 'Authentication required',
-        code: 'AUTH_REQUIRED'
+        error: "Authentication required",
+        code: "AUTH_REQUIRED"
       });
       return;
     }
@@ -241,8 +241,8 @@ export function requireSubscription(requirement: SubscriptionRequirement) {
     
     if (!userSubscription) {
       res.status(403).json({
-        error: 'Subscription information not found',
-        code: 'SUBSCRIPTION_NOT_FOUND'
+        error: "Subscription information not found",
+        code: "SUBSCRIPTION_NOT_FOUND"
       });
       return;
     }
@@ -253,8 +253,8 @@ export function requireSubscription(requirement: SubscriptionRequirement) {
       const requiredTier = getMinimumRequiredTier(requirement.tiers);
       
       res.status(403).json({
-        error: 'Subscription upgrade required',
-        code: 'UPGRADE_REQUIRED',
+        error: "Subscription upgrade required",
+        code: "UPGRADE_REQUIRED",
         currentTier: userSubscription.tier,
         requiredTier,
         feature: requirement.feature || requirement.personaId
@@ -282,8 +282,8 @@ export async function hasFeatureAccess(userId: string, feature: string): Promise
     }
 
     return allowedTiers.includes(userSubscription.tier);
-  } catch (error) {
-    console.error('Error checking feature access:', error);
+  } catch (error: any) {
+    console.error("Error checking feature access:", error);
     return false;
   }
 }

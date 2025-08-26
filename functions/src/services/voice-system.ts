@@ -117,7 +117,7 @@ export class VoiceSystemService {
 
       return { audioData: audioBase64, cacheKey };
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("ElevenLabs TTS error:", error);
       throw new Error(`Voice generation failed: ${error}`);
     }
@@ -170,7 +170,7 @@ export class VoiceSystemService {
 
       return voiceId;
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Voice cloning error:", error);
       throw new Error(`Voice cloning failed: ${error}`);
     }
@@ -188,7 +188,7 @@ export class VoiceSystemService {
       });
 
       return response.data.voices;
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Get voices error:", error);
       throw new Error(`Failed to get voices: ${error}`);
     }
@@ -230,7 +230,7 @@ export class VoiceSystemService {
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
       });
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Voice cache error:", error);
     }
   }
@@ -264,7 +264,7 @@ export class VoiceSystemService {
       const [buffer] = await file.download();
       return buffer.toString("base64");
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Get cached voice error:", error);
       return null;
     }
@@ -305,7 +305,7 @@ export class VoiceSystemService {
       const file = bucket.file(`voice-cache/${cacheKey}.mp3`);
       await file.delete();
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Cache cleanup error:", error);
     }
   }
@@ -338,10 +338,10 @@ export class VoiceSystemService {
         lastChecked: new Date().toISOString()
       };
 
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: "error",
-        error: error.message,
+        error: error?.message || "Unknown error",
         lastChecked: new Date().toISOString()
       };
     }
@@ -366,7 +366,7 @@ export class VoiceSystemService {
         try {
           await this.generateSpeech(phrase, persona);
           functions.logger.info(`Pre-generated voice for ${persona}: ${phrase.substring(0, 30)}...`);
-        } catch (error) {
+        } catch (error: any) {
           functions.logger.error(`Failed to pre-generate voice for ${persona}:`, error);
         }
       }

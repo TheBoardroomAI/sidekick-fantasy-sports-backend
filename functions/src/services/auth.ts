@@ -45,7 +45,7 @@ export class AuthService {
       };
 
       return user;
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to create user: ${error}`);
     }
   }
@@ -62,7 +62,7 @@ export class AuthService {
       }
 
       return { uid, ...userDoc.data() } as User;
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to get user: ${error}`);
     }
   }
@@ -85,7 +85,7 @@ export class AuthService {
       }
 
       return updatedUser;
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to update user: ${error}`);
     }
   }
@@ -96,7 +96,7 @@ export class AuthService {
   static async verifyIdToken(idToken: string): Promise<admin.auth.DecodedIdToken> {
     try {
       return await auth.verifyIdToken(idToken);
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Invalid ID token: ${error}`);
     }
   }
@@ -128,7 +128,7 @@ export class AuthService {
     try {
       const secret = process.env.JWT_SECRET || "sidekicksportsapp-02823395";
       return jwt.verify(token, secret);
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Invalid API token: ${error}`);
     }
   }
@@ -142,7 +142,7 @@ export class AuthService {
         lastLoginAt: new Date(),
         updatedAt: new Date()
       });
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to update last login: ${error}`);
     }
   }

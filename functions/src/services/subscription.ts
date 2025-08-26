@@ -39,7 +39,7 @@ export class SubscriptionService {
       });
 
       return session.url!;
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to create checkout session: ${error}`);
     }
   }
@@ -76,7 +76,7 @@ export class SubscriptionService {
         subscriptionId: subscriptionId
       });
 
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to handle subscription created: ${error}`);
     }
   }
@@ -107,7 +107,7 @@ export class SubscriptionService {
         subscriptionStatus: "canceled"
       });
 
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to handle subscription canceled: ${error}`);
     }
   }
@@ -155,10 +155,10 @@ export class SubscriptionService {
       return {
         status: subscription.status,
         tier: user.subscriptionTier,
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        currentPeriodEnd: new Date(subscription.current_period_end as number * 1000),
         cancelAtPeriodEnd: subscription.cancel_at_period_end
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to get subscription status: ${error}`);
     }
   }

@@ -1,10 +1,10 @@
-import * as functions from 'firebase-functions';
-import DOMPurify from 'isomorphic-dompurify';
+import * as functions from "firebase-functions";
+import DOMPurify from "isomorphic-dompurify";
 
 // Input validation configuration
 interface ValidationRule {
   required?: boolean;
-  type?: 'string' | 'number' | 'boolean' | 'email' | 'url' | 'array' | 'object';
+  type?: "string" | "number" | "boolean" | "email" | "url" | "array" | "object";
   minLength?: number;
   maxLength?: number;
   min?: number;
@@ -22,8 +22,8 @@ interface ValidationSchema {
 export class InputValidator {
   // Sanitize HTML content
   static sanitizeHtml(input: string): string {
-    if (typeof input !== 'string') {
-      return '';
+    if (typeof input !== "string") {
+      return "";
     }
     
     // Remove all HTML tags and scripts
@@ -36,17 +36,17 @@ export class InputValidator {
 
   // Escape special characters for SQL/NoSQL injection prevention
   static escapeSpecialChars(input: string): string {
-    if (typeof input !== 'string') {
-      return '';
+    if (typeof input !== "string") {
+      return "";
     }
     
     return input
-      .replace(/[<>]/g, '') // Remove angle brackets
-      .replace(/['"]/g, '') // Remove quotes
-      .replace(/[\\]/g, '') // Remove backslashes
-      .replace(/[{}]/g, '') // Remove curly braces
-      .replace(/[\[\]]/g, '') // Remove square brackets
-      .replace(/[;]/g, '') // Remove semicolons
+      .replace(/[<>]/g, "") // Remove angle brackets
+      .replace(/['"]/g, "") // Remove quotes
+      .replace(/[\\]/g, "") // Remove backslashes
+      .replace(/[{}]/g, "") // Remove curly braces
+      .replace(/[\[\]]/g, "") // Remove square brackets
+      .replace(/[;]/g, "") // Remove semicolons
       .trim();
   }
 
@@ -86,12 +86,12 @@ export class InputValidator {
   // Validate single field
   static validateField(value: any, rule: ValidationRule, fieldName: string): { valid: boolean; error?: string; sanitizedValue?: any } {
     // Check if required
-    if (rule.required && (value === undefined || value === null || value === '')) {
+    if (rule.required && (value === undefined || value === null || value === "")) {
       return { valid: false, error: `${fieldName} is required` };
     }
     
     // If not required and empty, return valid
-    if (!rule.required && (value === undefined || value === null || value === '')) {
+    if (!rule.required && (value === undefined || value === null || value === "")) {
       return { valid: true, sanitizedValue: value };
     }
     
@@ -100,96 +100,96 @@ export class InputValidator {
     // Type validation
     if (rule.type) {
       switch (rule.type) {
-        case 'string':
-          if (typeof value !== 'string') {
-            return { valid: false, error: `${fieldName} must be a string` };
-          }
+      case "string":
+        if (typeof value !== "string") {
+          return { valid: false, error: `${fieldName} must be a string` };
+        }
           
-          // Sanitize string if requested
-          if (rule.sanitize) {
-            sanitizedValue = this.sanitizeHtml(value);
-            sanitizedValue = this.escapeSpecialChars(sanitizedValue);
-          }
+        // Sanitize string if requested
+        if (rule.sanitize) {
+          sanitizedValue = this.sanitizeHtml(value);
+          sanitizedValue = this.escapeSpecialChars(sanitizedValue);
+        }
           
-          // Check for injection patterns
-          if (this.containsInjectionPatterns(value)) {
-            return { valid: false, error: `${fieldName} contains potentially dangerous content` };
-          }
+        // Check for injection patterns
+        if (this.containsInjectionPatterns(value)) {
+          return { valid: false, error: `${fieldName} contains potentially dangerous content` };
+        }
           
-          break;
+        break;
           
-        case 'number':
-          if (typeof value !== 'number' && !Number.isFinite(Number(value))) {
-            return { valid: false, error: `${fieldName} must be a number` };
-          }
-          sanitizedValue = Number(value);
-          break;
+      case "number":
+        if (typeof value !== "number" && !Number.isFinite(Number(value))) {
+          return { valid: false, error: `${fieldName} must be a number` };
+        }
+        sanitizedValue = Number(value);
+        break;
           
-        case 'boolean':
-          if (typeof value !== 'boolean') {
-            return { valid: false, error: `${fieldName} must be a boolean` };
-          }
-          break;
+      case "boolean":
+        if (typeof value !== "boolean") {
+          return { valid: false, error: `${fieldName} must be a boolean` };
+        }
+        break;
           
-        case 'email':
-          if (typeof value !== 'string' || !this.isValidEmail(value)) {
-            return { valid: false, error: `${fieldName} must be a valid email address` };
-          }
-          sanitizedValue = value.toLowerCase().trim();
-          break;
+      case "email":
+        if (typeof value !== "string" || !this.isValidEmail(value)) {
+          return { valid: false, error: `${fieldName} must be a valid email address` };
+        }
+        sanitizedValue = value.toLowerCase().trim();
+        break;
           
-        case 'url':
-          if (typeof value !== 'string' || !this.isValidUrl(value)) {
-            return { valid: false, error: `${fieldName} must be a valid URL` };
-          }
-          break;
+      case "url":
+        if (typeof value !== "string" || !this.isValidUrl(value)) {
+          return { valid: false, error: `${fieldName} must be a valid URL` };
+        }
+        break;
           
-        case 'array':
-          if (!Array.isArray(value)) {
-            return { valid: false, error: `${fieldName} must be an array` };
-          }
-          break;
+      case "array":
+        if (!Array.isArray(value)) {
+          return { valid: false, error: `${fieldName} must be an array` };
+        }
+        break;
           
-        case 'object':
-          if (typeof value !== 'object' || Array.isArray(value) || value === null) {
-            return { valid: false, error: `${fieldName} must be an object` };
-          }
-          break;
+      case "object":
+        if (typeof value !== "object" || Array.isArray(value) || value === null) {
+          return { valid: false, error: `${fieldName} must be an object` };
+        }
+        break;
       }
     }
     
     // Length validation for strings and arrays
     if (rule.minLength !== undefined) {
-      const length = typeof sanitizedValue === 'string' ? sanitizedValue.length : 
-                    Array.isArray(sanitizedValue) ? sanitizedValue.length : 0;
+      const length = typeof sanitizedValue === "string" ? sanitizedValue.length : 
+        Array.isArray(sanitizedValue) ? sanitizedValue.length : 0;
       if (length < rule.minLength) {
         return { valid: false, error: `${fieldName} must be at least ${rule.minLength} characters/items long` };
       }
     }
     
     if (rule.maxLength !== undefined) {
-      const length = typeof sanitizedValue === 'string' ? sanitizedValue.length : 
-                    Array.isArray(sanitizedValue) ? sanitizedValue.length : 0;
+      const length = typeof sanitizedValue === "string" ? sanitizedValue.length : 
+        Array.isArray(sanitizedValue) ? sanitizedValue.length : 0;
       if (length > rule.maxLength) {
         return { valid: false, error: `${fieldName} must be no more than ${rule.maxLength} characters/items long` };
       }
     }
     
     // Numeric range validation
-    if (rule.min !== undefined && typeof sanitizedValue === 'number') {
+    if (rule.min !== undefined && typeof sanitizedValue === "number") {
       if (sanitizedValue < rule.min) {
         return { valid: false, error: `${fieldName} must be at least ${rule.min}` };
       }
     }
     
-    if (rule.max !== undefined && typeof sanitizedValue === 'number') {
+    if (rule.max !== undefined && typeof sanitizedValue === "number") {
       if (sanitizedValue > rule.max) {
         return { valid: false, error: `${fieldName} must be no more than ${rule.max}` };
       }
     }
     
     // Pattern validation
-    if (rule.pattern && typeof sanitizedValue === 'string') {
+    if (rule.pattern && typeof sanitizedValue === "string") {
       if (!rule.pattern.test(sanitizedValue)) {
         return { valid: false, error: `${fieldName} format is invalid` };
       }
@@ -197,7 +197,7 @@ export class InputValidator {
     
     // Allowed values validation
     if (rule.allowedValues && !rule.allowedValues.includes(sanitizedValue)) {
-      return { valid: false, error: `${fieldName} must be one of: ${rule.allowedValues.join(', ')}` };
+      return { valid: false, error: `${fieldName} must be one of: ${rule.allowedValues.join(", ")}` };
     }
     
     // Custom validation
@@ -206,7 +206,7 @@ export class InputValidator {
       if (customResult !== true) {
         return { 
           valid: false, 
-          error: typeof customResult === 'string' ? customResult : `${fieldName} is invalid` 
+          error: typeof customResult === "string" ? customResult : `${fieldName} is invalid` 
         };
       }
     }
@@ -232,13 +232,13 @@ export class InputValidator {
     }
     
     // Check for unexpected fields (potential injection attempt)
-    if (data && typeof data === 'object') {
+    if (data && typeof data === "object") {
       const allowedFields = Object.keys(schema);
       const providedFields = Object.keys(data);
       const unexpectedFields = providedFields.filter(field => !allowedFields.includes(field));
       
       if (unexpectedFields.length > 0) {
-        errors.push(`Unexpected fields: ${unexpectedFields.join(', ')}`);
+        errors.push(`Unexpected fields: ${unexpectedFields.join(", ")}`);
       }
     }
     
@@ -258,9 +258,9 @@ export function validateRequest(schema: ValidationSchema) {
       
       if (!result.valid) {
         res.status(400).json({
-          error: 'Validation failed',
+          error: "Validation failed",
           details: result.errors,
-          code: 'VALIDATION_ERROR'
+          code: "VALIDATION_ERROR"
         });
         return;
       }
@@ -270,11 +270,11 @@ export function validateRequest(schema: ValidationSchema) {
       
       if (next) next();
       
-    } catch (error) {
-      console.error('Validation middleware error:', error);
+    } catch (error: any) {
+      console.error("Validation middleware error:", error);
       res.status(500).json({
-        error: 'Internal validation error',
-        code: 'VALIDATION_INTERNAL_ERROR'
+        error: "Internal validation error",
+        code: "VALIDATION_INTERNAL_ERROR"
       });
     }
   };
@@ -286,19 +286,19 @@ export const ValidationSchemas = {
   userRegistration: {
     email: { 
       required: true, 
-      type: 'email' as const,
+      type: "email" as const,
       maxLength: 254,
       sanitize: true
     },
     password: { 
       required: true, 
-      type: 'string' as const,
+      type: "string" as const,
       minLength: 6,
       maxLength: 128
     },
     displayName: { 
       required: true, 
-      type: 'string' as const,
+      type: "string" as const,
       minLength: 1,
       maxLength: 50,
       sanitize: true,
@@ -310,12 +310,12 @@ export const ValidationSchemas = {
   userLogin: {
     email: { 
       required: true, 
-      type: 'email' as const,
+      type: "email" as const,
       sanitize: true
     },
     password: { 
       required: true, 
-      type: 'string' as const,
+      type: "string" as const,
       minLength: 1,
       maxLength: 128
     }
@@ -325,19 +325,19 @@ export const ValidationSchemas = {
   personaChat: {
     message: { 
       required: true, 
-      type: 'string' as const,
+      type: "string" as const,
       minLength: 1,
       maxLength: 2000,
       sanitize: true
     },
     personaId: { 
       required: true, 
-      type: 'string' as const,
-      allowedValues: ['rookie', 'mentor', 'analyst', 'oracle', 'rebel', 'zane']
+      type: "string" as const,
+      allowedValues: ["rookie", "mentor", "analyst", "oracle", "rebel", "zane"]
     },
     conversationId: { 
       required: false, 
-      type: 'string' as const,
+      type: "string" as const,
       pattern: /^[a-zA-Z0-9_-]+$/
     }
   },
@@ -346,18 +346,18 @@ export const ValidationSchemas = {
   voiceInput: {
     audioData: { 
       required: true, 
-      type: 'string' as const,
+      type: "string" as const,
       maxLength: 10000000 // 10MB base64 limit
     },
     personaId: { 
       required: true, 
-      type: 'string' as const,
-      allowedValues: ['rookie', 'mentor', 'analyst', 'oracle', 'rebel', 'zane']
+      type: "string" as const,
+      allowedValues: ["rookie", "mentor", "analyst", "oracle", "rebel", "zane"]
     },
     format: { 
       required: false, 
-      type: 'string' as const,
-      allowedValues: ['wav', 'mp3', 'webm']
+      type: "string" as const,
+      allowedValues: ["wav", "mp3", "webm"]
     }
   },
   
@@ -365,8 +365,8 @@ export const ValidationSchemas = {
   subscriptionCheckout: {
     tier: { 
       required: true, 
-      type: 'string' as const,
-      allowedValues: ['rookie', 'pro', 'champion']
+      type: "string" as const,
+      allowedValues: ["rookie", "pro", "champion"]
     }
   },
   
@@ -374,18 +374,18 @@ export const ValidationSchemas = {
   dataQuery: {
     position: { 
       required: false, 
-      type: 'string' as const,
-      allowedValues: ['QB', 'RB', 'WR', 'TE', 'K', 'DST']
+      type: "string" as const,
+      allowedValues: ["QB", "RB", "WR", "TE", "K", "DST"]
     },
     week: { 
       required: false, 
-      type: 'number' as const,
+      type: "number" as const,
       min: 1,
       max: 18
     },
     limit: { 
       required: false, 
-      type: 'number' as const,
+      type: "number" as const,
       min: 1,
       max: 100
     }

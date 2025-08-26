@@ -58,7 +58,7 @@ export const authenticateUser = async (
         return;
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ error: "Authentication error" });
     return;
   }

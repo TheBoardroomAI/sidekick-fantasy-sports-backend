@@ -10,11 +10,14 @@ module.exports = {
   ],
   parser: "@typescript-eslint/parser",
   parserOptions: {
-    project: ["tsconfig.json", "tsconfig.dev.json"],
+    project: ["tsconfig.json"],
     sourceType: "module",
+    ecmaVersion: 2020,
   },
   ignorePatterns: [
     "/lib/**/*", // Ignore built files.
+    "/generated/**/*", // Ignore generated files.
+    "**/*.js", // Ignore JS files
   ],
   plugins: [
     "@typescript-eslint",
@@ -24,6 +27,9 @@ module.exports = {
     "quotes": ["error", "double"],
     "import/no-unresolved": 0,
     "indent": ["error", 2],
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
   },
 };
 

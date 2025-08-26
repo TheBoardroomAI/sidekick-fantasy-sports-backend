@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import axios from "axios";
-import { db, COLLECTIONS, SubscriptionTier } from "../config/firebase";
+import { db, COLLECTIONS } from "../config/firebase";
 import { DataIntegrationService } from "./data-integration";
 import { VoiceSystemService, PERSONA_VOICES } from "./voice-system";
 import { SubscriptionService } from "./subscription";
@@ -15,7 +15,7 @@ export const PERSONA_CONFIGS = {
   ORACLE: {
     name: "The Oracle",
     personality: "Mystical, wise, prophetic. Speaks in metaphors and sees patterns others miss. Uses ancient wisdom to predict fantasy outcomes.",
-    systemPrompt: `You are The Oracle, a mystical fantasy football advisor. You see patterns in the data that others cannot perceive. Speak with wisdom and use metaphors from ancient times. Your predictions are based on deep data analysis but presented as mystical insights. Always reference "the data spirits" and "cosmic alignments" when discussing player performance.`,
+    systemPrompt: "You are The Oracle, a mystical fantasy football advisor. You see patterns in the data that others cannot perceive. Speak with wisdom and use metaphors from ancient times. Your predictions are based on deep data analysis but presented as mystical insights. Always reference \"the data spirits\" and \"cosmic alignments\" when discussing player performance.",
     dataWeighting: {
       trends: 0.4,
       advanced_metrics: 0.3,
@@ -27,7 +27,7 @@ export const PERSONA_CONFIGS = {
   REBEL: {
     name: "The Rebel", 
     personality: "Contrarian, edgy, confident. Challenges conventional wisdom and finds value in overlooked players. Takes calculated risks.",
-    systemPrompt: `You are The Rebel, a contrarian fantasy football advisor who challenges conventional wisdom. You find value where others don't look and aren't afraid to recommend risky plays. Be confident, slightly edgy, and always question the popular consensus. Look for undervalued players and contrarian strategies.`,
+    systemPrompt: "You are The Rebel, a contrarian fantasy football advisor who challenges conventional wisdom. You find value where others don't look and aren't afraid to recommend risky plays. Be confident, slightly edgy, and always question the popular consensus. Look for undervalued players and contrarian strategies.",
     dataWeighting: {
       contrarian_indicators: 0.4,
       value_metrics: 0.3,
@@ -39,7 +39,7 @@ export const PERSONA_CONFIGS = {
   MENTOR: {
     name: "The Mentor",
     personality: "Patient, teaching, encouraging. Explains concepts clearly and helps users learn fantasy football strategy.",
-    systemPrompt: `You are The Mentor, a patient and encouraging fantasy football teacher. Your goal is to help users understand not just what to do, but why. Explain concepts clearly, be supportive, and always focus on helping users improve their fantasy football knowledge. Use teaching moments in every interaction.`,
+    systemPrompt: "You are The Mentor, a patient and encouraging fantasy football teacher. Your goal is to help users understand not just what to do, but why. Explain concepts clearly, be supportive, and always focus on helping users improve their fantasy football knowledge. Use teaching moments in every interaction.",
     dataWeighting: {
       fundamentals: 0.4,
       educational_value: 0.3,
@@ -51,7 +51,7 @@ export const PERSONA_CONFIGS = {
   ANALYST: {
     name: "The Analyst",
     personality: "Data-driven, precise, analytical. Focuses on numbers, statistics, and quantitative analysis.",
-    systemPrompt: `You are The Analyst, a data-driven fantasy football expert. You rely heavily on statistics, advanced metrics, and quantitative analysis. Present information with precision, cite specific numbers, and always back up recommendations with concrete data. Focus on EPA, YPRR, air yards, target share, and other advanced metrics.`,
+    systemPrompt: "You are The Analyst, a data-driven fantasy football expert. You rely heavily on statistics, advanced metrics, and quantitative analysis. Present information with precision, cite specific numbers, and always back up recommendations with concrete data. Focus on EPA, YPRR, air yards, target share, and other advanced metrics.",
     dataWeighting: {
       advanced_stats: 0.5,
       efficiency_metrics: 0.3,
@@ -63,7 +63,7 @@ export const PERSONA_CONFIGS = {
   ROOKIE: {
     name: "The Rookie",
     personality: "Enthusiastic, energetic, learning. Asks questions and shares excitement about fantasy football.",
-    systemPrompt: `You are The Rookie, an enthusiastic and energetic fantasy football fan who's still learning. You're excited about everything, ask lots of questions, and share your genuine enthusiasm. Sometimes you're unsure but always eager to learn and help. Be relatable to new fantasy players.`,
+    systemPrompt: "You are The Rookie, an enthusiastic and energetic fantasy football fan who's still learning. You're excited about everything, ask lots of questions, and share your genuine enthusiasm. Sometimes you're unsure but always eager to learn and help. Be relatable to new fantasy players.",
     dataWeighting: {
       basic_stats: 0.4,
       popular_opinion: 0.3,
@@ -75,7 +75,7 @@ export const PERSONA_CONFIGS = {
   ZANE: {
     name: "Zane the AI Sports Reporter",
     personality: "Professional broadcaster, dramatic, authoritative. Delivers breaking news and analysis with sports media flair.",
-    systemPrompt: `You are Zane, an AI Sports Reporter with the dramatic flair of a professional broadcaster. You deliver breaking fantasy football news, injury reports, and analysis with authority and excitement. Use sports media language, create urgency around important news, and always focus on fantasy relevance. Rate news impact on a 1-10 scale.`,
+    systemPrompt: "You are Zane, an AI Sports Reporter with the dramatic flair of a professional broadcaster. You deliver breaking fantasy football news, injury reports, and analysis with authority and excitement. Use sports media language, create urgency around important news, and always focus on fantasy relevance. Rate news impact on a 1-10 scale.",
     dataWeighting: {
       breaking_news: 0.4,
       injury_impact: 0.3,
@@ -179,7 +179,7 @@ export class PersonaEngineService {
         dataUsed: relevantData
       };
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Persona query error:", error);
       throw new Error(`Persona query failed: ${error}`);
     }
@@ -242,7 +242,7 @@ Remember to stay in character as ${personaConfig.name} and use the personality t
 
       return response.data.choices[0].message.content;
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("OpenAI API error:", error);
       throw new Error(`Failed to generate response: ${error}`);
     }
@@ -302,7 +302,7 @@ Remember to stay in character as ${personaConfig.name} and use the personality t
 
       return relevantData;
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Data gathering error:", error);
       return { error: "Failed to gather relevant data" };
     }
@@ -350,7 +350,7 @@ Remember to stay in character as ${personaConfig.name} and use the personality t
       await conversationRef.set(newContext);
       return newContext;
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Conversation context error:", error);
       throw new Error(`Failed to get conversation context: ${error}`);
     }
@@ -383,7 +383,7 @@ Remember to stay in character as ${personaConfig.name} and use the personality t
         updatedAt: new Date()
       });
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Update conversation history error:", error);
     }
   }
@@ -416,7 +416,7 @@ Remember to stay in character as ${personaConfig.name} and use the personality t
         });
       }
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Update user usage error:", error);
     }
   }

@@ -47,7 +47,7 @@ app.get("/briefing", authenticateUser, requireSubscriptionTier(["pro", "champion
       briefing
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get briefing error:", error);
     res.status(500).json({ error: "Failed to get daily briefing" });
   }
@@ -79,7 +79,7 @@ app.get("/breaking-news", authenticateUser, async (req: AuthenticatedRequest, re
       count: news.length
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get breaking news error:", error);
     res.status(500).json({ error: "Failed to get breaking news" });
   }
@@ -108,7 +108,7 @@ app.get("/news/:newsId", authenticateUser, async (req: AuthenticatedRequest, res
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get news item error:", error);
     res.status(500).json({ error: "Failed to get news item" });
   }
@@ -150,7 +150,7 @@ app.post("/analyze-news", async (req, res) => {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Analyze news error:", error);
     res.status(500).json({ error: "Failed to analyze news" });
   }
@@ -174,7 +174,7 @@ app.post("/live-update", requireSubscriptionTier(["champion"]), async (req: Auth
       update
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Live update error:", error);
     res.status(500).json({ error: "Failed to generate live update" });
   }
@@ -211,7 +211,7 @@ app.get("/news/category/:category", authenticateUser, async (req: AuthenticatedR
       count: news.length
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get news by category error:", error);
     res.status(500).json({ error: "Failed to get news by category" });
   }
@@ -242,7 +242,7 @@ app.get("/high-impact", authenticateUser, async (req: AuthenticatedRequest, res)
       count: news.length
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get high-impact news error:", error);
     res.status(500).json({ error: "Failed to get high-impact news" });
   }
@@ -274,7 +274,7 @@ app.get("/player/:playerName/news", authenticateUser, async (req: AuthenticatedR
       count: news.length
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get player news error:", error);
     res.status(500).json({ error: "Failed to get player news" });
   }
@@ -309,11 +309,11 @@ app.get("/voice-briefing", authenticateUser, requireSubscriptionTier(["pro", "ch
       duration: "estimated 3-5 minutes"
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get voice briefing error:", error);
     res.status(500).json({ error: "Failed to get voice briefing" });
   }
 });
 
-export const zaneRoutes = functions.https.onRequest(app);
+export { app as zaneRoutes };
 

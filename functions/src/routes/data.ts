@@ -21,7 +21,7 @@ app.get("/player/:playerId", authenticateUser, async (req: AuthenticatedRequest,
       data: playerData
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Player data error:", error);
     res.status(500).json({ error: "Failed to get player data" });
   }
@@ -39,7 +39,7 @@ app.get("/players", authenticateUser, async (req: AuthenticatedRequest, res) => 
       data: playersData
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Players list error:", error);
     res.status(500).json({ error: "Failed to get players list" });
   }
@@ -57,7 +57,7 @@ app.get("/teams", authenticateUser, async (req: AuthenticatedRequest, res) => {
       data: teamsData
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Teams data error:", error);
     res.status(500).json({ error: "Failed to get teams data" });
   }
@@ -76,7 +76,7 @@ app.get("/games", authenticateUser, async (req: AuthenticatedRequest, res) => {
       data: gamesData
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Games data error:", error);
     res.status(500).json({ error: "Failed to get games data" });
   }
@@ -95,7 +95,7 @@ app.get("/stats/players", authenticateUser, async (req: AuthenticatedRequest, re
       data: statsData
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Player stats error:", error);
     res.status(500).json({ error: "Failed to get player stats" });
   }
@@ -114,7 +114,7 @@ app.get("/standings", authenticateUser, async (req: AuthenticatedRequest, res) =
       data: standingsData
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Standings error:", error);
     res.status(500).json({ error: "Failed to get standings" });
   }
@@ -132,7 +132,7 @@ app.get("/metrics/advanced", authenticateUser, async (req: AuthenticatedRequest,
       data: metricsData
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Advanced metrics error:", error);
     res.status(500).json({ error: "Failed to get advanced metrics" });
   }
@@ -150,7 +150,7 @@ app.get("/metrics/epa", authenticateUser, async (req: AuthenticatedRequest, res)
       data: epaData
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("EPA data error:", error);
     res.status(500).json({ error: "Failed to get EPA data" });
   }
@@ -168,7 +168,7 @@ app.get("/trending", authenticateUser, async (req: AuthenticatedRequest, res) =>
       data: trendingData
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Trending players error:", error);
     res.status(500).json({ error: "Failed to get trending players" });
   }
@@ -187,11 +187,11 @@ app.get("/health", async (req, res) => {
       sources: healthData
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Data health check error:", error);
     res.status(500).json({ error: "Health check failed" });
   }
 });
 
-export const dataRoutes = functions.https.onRequest(app);
+export { app as dataRoutes };
 

@@ -121,7 +121,7 @@ export const keepWarm = functions
     memory: "256MB",
     timeoutSeconds: 60
   })
-  .pubsub.schedule('every 5 minutes')
+  .pubsub.schedule("every 5 minutes")
   .onRun(async (context) => {
     const baseUrl = `https://us-central1-${process.env.GCLOUD_PROJECT}.cloudfunctions.net`;
     
@@ -135,9 +135,9 @@ export const keepWarm = functions
 
     try {
       await Promise.allSettled(warmupRequests);
-      console.log('Function warmup completed successfully');
-    } catch (error) {
-      console.error('Function warmup failed:', error);
+      console.log("Function warmup completed successfully");
+    } catch (error: any) {
+      console.error("Function warmup failed:", error);
     }
 
     return null;
@@ -149,7 +149,7 @@ export const cleanupExpiredSessions = functions
     memory: "256MB",
     timeoutSeconds: 300
   })
-  .pubsub.schedule('every 24 hours')
+  .pubsub.schedule("every 24 hours")
   .onRun(async (context) => {
     const db = admin.firestore();
     const now = new Date();
@@ -157,8 +157,8 @@ export const cleanupExpiredSessions = functions
 
     try {
       // Clean up expired rate limit entries
-      const expiredSessions = await db.collection('rate_limits')
-        .where('expiresAt', '<', oneDayAgo)
+      const expiredSessions = await db.collection("rate_limits")
+        .where("expiresAt", "<", oneDayAgo)
         .limit(500)
         .get();
 
@@ -174,8 +174,8 @@ export const cleanupExpiredSessions = functions
 
       // Clean up old error logs (keep only last 7 days)
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const oldErrorLogs = await db.collection('error_logs')
-        .where('timestamp', '<', sevenDaysAgo)
+      const oldErrorLogs = await db.collection("error_logs")
+        .where("timestamp", "<", sevenDaysAgo)
         .limit(1000)
         .get();
 
@@ -188,8 +188,8 @@ export const cleanupExpiredSessions = functions
         console.log(`Cleaned up ${oldErrorLogs.size} old error logs`);
       }
 
-    } catch (error) {
-      console.error('Cleanup failed:', error);
+    } catch (error: any) {
+      console.error("Cleanup failed:", error);
     }
 
     return null;
@@ -201,7 +201,7 @@ export const performanceMonitor = functions
     memory: "256MB",
     timeoutSeconds: 60
   })
-  .pubsub.schedule('every 15 minutes')
+  .pubsub.schedule("every 15 minutes")
   .onRun(async (context) => {
     const db = admin.firestore();
     
@@ -215,11 +215,11 @@ export const performanceMonitor = functions
         avgResponseTime: await getAverageResponseTime()
       };
 
-      await db.collection('performance_metrics').add(metrics);
-      console.log('Performance metrics logged:', metrics);
+      await db.collection("performance_metrics").add(metrics);
+      console.log("Performance metrics logged:", metrics);
 
-    } catch (error) {
-      console.error('Performance monitoring failed:', error);
+    } catch (error: any) {
+      console.error("Performance monitoring failed:", error);
     }
 
     return null;
@@ -230,8 +230,8 @@ async function getActiveUserCount(): Promise<number> {
   const db = admin.firestore();
   const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
   
-  const activeUsers = await db.collection('user_activity')
-    .where('lastSeen', '>', fifteenMinutesAgo)
+  const activeUsers = await db.collection("user_activity")
+    .where("lastSeen", ">", fifteenMinutesAgo)
     .get();
     
   return activeUsers.size;
@@ -247,8 +247,8 @@ async function getErrorRate(): Promise<number> {
   const db = admin.firestore();
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   
-  const errors = await db.collection('error_logs')
-    .where('timestamp', '>', oneHourAgo)
+  const errors = await db.collection("error_logs")
+    .where("timestamp", ">", oneHourAgo)
     .get();
     
   return errors.size;

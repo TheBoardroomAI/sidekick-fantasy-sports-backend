@@ -122,7 +122,7 @@ export class ZaneReporterService {
 
       return newsItem;
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Breaking news analysis error:", error);
       throw new Error(`Failed to analyze breaking news: ${error}`);
     }
@@ -214,7 +214,7 @@ export class ZaneReporterService {
 
       return briefing;
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Daily briefing error:", error);
       throw new Error(`Failed to generate daily briefing: ${error}`);
     }
@@ -275,7 +275,7 @@ export class ZaneReporterService {
 
       return { update: liveUpdate, voiceUpdate };
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Live game update error:", error);
       throw new Error(`Failed to generate live update: ${error}`);
     }
@@ -298,7 +298,7 @@ export class ZaneReporterService {
         timestamp: new Date().toISOString() 
       });
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("News monitoring error:", error);
     }
   }

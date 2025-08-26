@@ -29,7 +29,7 @@ export class RealtimeSystemService {
         cluster: PUSHER_CLUSTER,
         channels: await this.getActiveChannels()
       };
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Pusher initialization error:", error);
       throw new Error(`Pusher initialization failed: ${error}`);
     }
@@ -79,7 +79,7 @@ export class RealtimeSystemService {
         draftRoom
       };
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Create draft room error:", error);
       throw new Error(`Failed to create draft room: ${error}`);
     }
@@ -126,7 +126,7 @@ export class RealtimeSystemService {
         participants: [...roomData?.participants, userId]
       };
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Join draft room error:", error);
       throw new Error(`Failed to join draft room: ${error}`);
     }
@@ -181,7 +181,7 @@ export class RealtimeSystemService {
         currentPickUser: draftOrder[0]
       };
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Start draft error:", error);
       throw new Error(`Failed to start draft: ${error}`);
     }
@@ -259,7 +259,7 @@ export class RealtimeSystemService {
         nextPickNumber
       };
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Make draft pick error:", error);
       throw new Error(`Failed to make draft pick: ${error}`);
     }
@@ -290,7 +290,7 @@ export class RealtimeSystemService {
       const channelName = `draft-room-${roomId}`;
       await this.triggerEvent(channelName, "new-message", messageData);
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Send draft message error:", error);
       throw new Error(`Failed to send message: ${error}`);
     }
@@ -309,7 +309,7 @@ export class RealtimeSystemService {
 
       await this.makePusherRequest("POST", "/events", payload);
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Trigger event error:", error);
       throw new Error(`Failed to trigger event: ${error}`);
     }
@@ -322,7 +322,7 @@ export class RealtimeSystemService {
     try {
       const response = await this.makePusherRequest("GET", "/channels");
       return response.channels;
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Get channels error:", error);
       return {};
     }
@@ -363,7 +363,7 @@ export class RealtimeSystemService {
       const response = await axios(config);
       return response.data;
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Pusher request error:", error);
       throw error;
     }
@@ -420,7 +420,7 @@ export class RealtimeSystemService {
         completedAt: new Date().toISOString()
       });
 
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Complete draft error:", error);
     }
   }
@@ -457,10 +457,10 @@ export class RealtimeSystemService {
         lastChecked: new Date().toISOString()
       };
 
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: "error",
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error?.message || "Unknown error" : "Unknown error",
         lastChecked: new Date().toISOString()
       };
     }

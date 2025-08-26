@@ -24,7 +24,7 @@ export class DataIntegrationService {
       });
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Tank01 API error:", error);
       throw new Error(`Tank01 API request failed: ${error}`);
     }
@@ -45,7 +45,7 @@ export class DataIntegrationService {
       });
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Tank01 teams API error:", error);
       throw new Error(`Tank01 teams API request failed: ${error}`);
     }
@@ -67,7 +67,7 @@ export class DataIntegrationService {
       });
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Tank01 games API error:", error);
       throw new Error(`Tank01 games API request failed: ${error}`);
     }
@@ -87,7 +87,7 @@ export class DataIntegrationService {
       });
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("MySportsFeeds API error:", error);
       throw new Error(`MySportsFeeds API request failed: ${error}`);
     }
@@ -116,7 +116,7 @@ export class DataIntegrationService {
       
       const response = await axios.get(`${baseUrl}${endpoint}`);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("NFLverse API error:", error);
       throw new Error(`NFLverse API request failed: ${error}`);
     }
@@ -165,7 +165,7 @@ export class DataIntegrationService {
       await this.cachePlayerData(playerId, unifiedData);
       
       return unifiedData;
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Unified player data error:", error);
       throw new Error(`Failed to get unified player data: ${error}`);
     }
@@ -181,7 +181,7 @@ export class DataIntegrationService {
         cachedAt: new Date(),
         expiresAt: new Date(Date.now() + 3600000) // 1 hour cache
       });
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Cache player data error:", error);
     }
   }
@@ -206,7 +206,7 @@ export class DataIntegrationService {
       }
 
       return data;
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Get cached player data error:", error);
       return null;
     }
@@ -249,7 +249,7 @@ export class DataIntegrationService {
         },
         lastUpdated: new Date().toISOString()
       };
-    } catch (error) {
+    } catch (error: any) {
       functions.logger.error("Trending players error:", error);
       throw new Error(`Failed to get trending players: ${error}`);
     }
@@ -270,8 +270,8 @@ export class DataIntegrationService {
       const start = Date.now();
       await this.getTank01TeamData();
       results.tank01 = { status: "healthy", latency: Date.now() - start };
-    } catch (error) {
-      results.tank01 = { status: "error", latency: 0, error: error.message };
+    } catch (error: any) {
+      results.tank01 = { status: "error", latency: 0, error: error?.message || "Unknown error" };
     }
 
     // Test MySportsFeeds
@@ -279,8 +279,8 @@ export class DataIntegrationService {
       const start = Date.now();
       await this.getTeamStandings();
       results.mysportsfeeds = { status: "healthy", latency: Date.now() - start };
-    } catch (error) {
-      results.mysportsfeeds = { status: "error", latency: 0, error: error.message };
+    } catch (error: any) {
+      results.mysportsfeeds = { status: "error", latency: 0, error: error?.message || "Unknown error" };
     }
 
     // Test NFLverse
@@ -288,8 +288,8 @@ export class DataIntegrationService {
       const start = Date.now();
       await this.getAdvancedPlayerMetrics();
       results.nflverse = { status: "healthy", latency: Date.now() - start };
-    } catch (error) {
-      results.nflverse = { status: "error", latency: 0, error: error.message };
+    } catch (error: any) {
+      results.nflverse = { status: "error", latency: 0, error: error?.message || "Unknown error" };
     }
 
     return results;

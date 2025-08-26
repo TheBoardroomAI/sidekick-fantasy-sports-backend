@@ -1,4 +1,4 @@
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
 const db = admin.firestore();
 
@@ -6,7 +6,7 @@ interface VoiceSession {
   userId: string;
   sessionId: string;
   personaId: string;
-  status: 'active' | 'processing' | 'completed' | 'error';
+  status: "active" | "processing" | "completed" | "error";
   startTime: Date;
   lastActivity: Date;
   audioBuffer?: ArrayBuffer;
@@ -37,7 +37,7 @@ export class VoiceSessionManager {
         if (activeAfterCleanup.length >= this.MAX_CONCURRENT_SESSIONS) {
           return {
             success: false,
-            error: 'Maximum concurrent voice sessions reached. Please wait for current sessions to complete.'
+            error: "Maximum concurrent voice sessions reached. Please wait for current sessions to complete."
           };
         }
       }
@@ -50,7 +50,7 @@ export class VoiceSessionManager {
         userId,
         sessionId,
         personaId,
-        status: 'active',
+        status: "active",
         startTime: new Date(),
         lastActivity: new Date(),
         audioBuffer: audioData
@@ -58,19 +58,19 @@ export class VoiceSessionManager {
 
       // Use transaction to ensure atomicity
       await db.runTransaction(async (transaction) => {
-        const sessionRef = db.collection('voice_sessions').doc(sessionId);
+        const sessionRef = db.collection("voice_sessions").doc(sessionId);
         
         // Check if session already exists (shouldn't happen with our ID generation)
         const existingSession = await transaction.get(sessionRef);
         if (existingSession.exists) {
-          throw new Error('Session ID collision detected');
+          throw new Error("Session ID collision detected");
         }
         
         // Create the session
         transaction.set(sessionRef, sessionData);
         
         // Update user's active session count
-        const userStatsRef = db.collection('user_stats').doc(userId);
+        const userStatsRef = db.collection("user_stats").doc(userId);
         transaction.set(userStatsRef, {
           activeVoiceSessions: admin.firestore.FieldValue.increment(1),
           lastVoiceActivity: new Date()
@@ -85,10 +85,10 @@ export class VoiceSessionManager {
       };
 
     } catch (error: any) {
-      console.error('Error starting voice session:', error);
+      console.error("Error starting voice session:", error);
       return {
         success: false,
-        error: error.message || 'Failed to start voice session'
+        error: error?.message || "Unknown error" || "Failed to start voice session"
       };
     }
   }
@@ -99,12 +99,12 @@ export class VoiceSessionManager {
     processingId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const result = await db.runTransaction(async (transaction) => {
-        const sessionRef = db.collection('voice_sessions').doc(sessionId);
+      await db.runTransaction(async (transaction) => {
+        const sessionRef = db.collection("voice_sessions").doc(sessionId);
         const sessionDoc = await transaction.get(sessionRef);
         
         if (!sessionDoc.exists) {
-          throw new Error('Session not found');
+          throw new Error("Session not found");
         }
         
         const sessionData = sessionDoc.data() as VoiceSession;
@@ -115,20 +115,20 @@ export class VoiceSessionManager {
           
           // If lock is old, we can take over
           if (lockAge < this.PROCESSING_TIMEOUT) {
-            throw new Error('Session is already being processed');
+            throw new Error("Session is already being processed");
           }
         }
         
         // Check session timeout
         const sessionAge = Date.now() - new Date(sessionData.startTime).getTime();
         if (sessionAge > this.SESSION_TIMEOUT) {
-          throw new Error('Session has expired');
+          throw new Error("Session has expired");
         }
         
         // Acquire the lock
         transaction.update(sessionRef, {
           processingLock: processingId,
-          status: 'processing',
+          status: "processing",
           lastActivity: new Date()
         });
         
@@ -138,10 +138,10 @@ export class VoiceSessionManager {
       return { success: true };
 
     } catch (error: any) {
-      console.error('Error acquiring processing lock:', error);
+      console.error("Error acquiring processing lock:", error);
       return {
         success: false,
-        error: error.message || 'Failed to acquire processing lock'
+        error: error?.message || "Unknown error" || "Failed to acquire processing lock"
       };
     }
   }
@@ -150,11 +150,11 @@ export class VoiceSessionManager {
   static async releaseProcessingLock(
     sessionId: string, 
     processingId: string,
-    status: 'completed' | 'error' = 'completed'
+    status: "completed" | "error" = "completed"
   ): Promise<void> {
     try {
       await db.runTransaction(async (transaction) => {
-        const sessionRef = db.collection('voice_sessions').doc(sessionId);
+        const sessionRef = db.collection("voice_sessions").doc(sessionId);
         const sessionDoc = await transaction.get(sessionRef);
         
         if (!sessionDoc.exists) {
@@ -173,8 +173,8 @@ export class VoiceSessionManager {
         }
       });
 
-    } catch (error) {
-      console.error('Error releasing processing lock:', error);
+    } catch (error: any) {
+      console.error("Error releasing processing lock:", error);
     }
   }
 
@@ -182,7 +182,7 @@ export class VoiceSessionManager {
   static async endSession(sessionId: string, userId: string): Promise<void> {
     try {
       await db.runTransaction(async (transaction) => {
-        const sessionRef = db.collection('voice_sessions').doc(sessionId);
+        const sessionRef = db.collection("voice_sessions").doc(sessionId);
         const sessionDoc = await transaction.get(sessionRef);
         
         if (!sessionDoc.exists) {
@@ -193,14 +193,14 @@ export class VoiceSessionManager {
         
         // Verify ownership
         if (sessionData.userId !== userId) {
-          throw new Error('Unauthorized session access');
+          throw new Error("Unauthorized session access");
         }
         
         // Delete the session
         transaction.delete(sessionRef);
         
         // Update user stats
-        const userStatsRef = db.collection('user_stats').doc(userId);
+        const userStatsRef = db.collection("user_stats").doc(userId);
         transaction.set(userStatsRef, {
           activeVoiceSessions: admin.firestore.FieldValue.increment(-1),
           totalVoiceSessions: admin.firestore.FieldValue.increment(1)
@@ -209,23 +209,23 @@ export class VoiceSessionManager {
 
       console.log(`Voice session ended: ${sessionId}`);
 
-    } catch (error) {
-      console.error('Error ending voice session:', error);
+    } catch (error: any) {
+      console.error("Error ending voice session:", error);
     }
   }
 
   // Get active sessions for a user
   static async getActiveSessions(userId: string): Promise<VoiceSession[]> {
     try {
-      const snapshot = await db.collection('voice_sessions')
-        .where('userId', '==', userId)
-        .where('status', 'in', ['active', 'processing'])
+      const snapshot = await db.collection("voice_sessions")
+        .where("userId", "==", userId)
+        .where("status", "in", ["active", "processing"])
         .get();
       
       return snapshot.docs.map(doc => doc.data() as VoiceSession);
 
-    } catch (error) {
-      console.error('Error getting active sessions:', error);
+    } catch (error: any) {
+      console.error("Error getting active sessions:", error);
       return [];
     }
   }
@@ -236,11 +236,11 @@ export class VoiceSessionManager {
       const now = new Date();
       const expiredTime = new Date(now.getTime() - this.SESSION_TIMEOUT);
       
-      let query = db.collection('voice_sessions')
-        .where('lastActivity', '<', expiredTime);
+      let query = db.collection("voice_sessions")
+        .where("lastActivity", "<", expiredTime);
       
       if (userId) {
-        query = query.where('userId', '==', userId);
+        query = query.where("userId", "==", userId);
       }
       
       const expiredSessions = await query.limit(100).get();
@@ -264,7 +264,7 @@ export class VoiceSessionManager {
       
       // Update user stats
       userUpdates.forEach((count, userId) => {
-        const userStatsRef = db.collection('user_stats').doc(userId);
+        const userStatsRef = db.collection("user_stats").doc(userId);
         batch.set(userStatsRef, {
           activeVoiceSessions: admin.firestore.FieldValue.increment(-count)
         }, { merge: true });
@@ -275,8 +275,8 @@ export class VoiceSessionManager {
       console.log(`Cleaned up ${expiredSessions.size} expired voice sessions`);
       return expiredSessions.size;
 
-    } catch (error) {
-      console.error('Error cleaning up expired sessions:', error);
+    } catch (error: any) {
+      console.error("Error cleaning up expired sessions:", error);
       return 0;
     }
   }
@@ -284,7 +284,7 @@ export class VoiceSessionManager {
   // Get session status
   static async getSessionStatus(sessionId: string): Promise<VoiceSession | null> {
     try {
-      const sessionDoc = await db.collection('voice_sessions').doc(sessionId).get();
+      const sessionDoc = await db.collection("voice_sessions").doc(sessionId).get();
       
       if (!sessionDoc.exists) {
         return null;
@@ -292,8 +292,8 @@ export class VoiceSessionManager {
       
       return sessionDoc.data() as VoiceSession;
 
-    } catch (error) {
-      console.error('Error getting session status:', error);
+    } catch (error: any) {
+      console.error("Error getting session status:", error);
       return null;
     }
   }
@@ -301,12 +301,12 @@ export class VoiceSessionManager {
   // Update session activity
   static async updateSessionActivity(sessionId: string): Promise<void> {
     try {
-      await db.collection('voice_sessions').doc(sessionId).update({
+      await db.collection("voice_sessions").doc(sessionId).update({
         lastActivity: new Date()
       });
 
-    } catch (error) {
-      console.error('Error updating session activity:', error);
+    } catch (error: any) {
+      console.error("Error updating session activity:", error);
     }
   }
 
@@ -331,17 +331,17 @@ export class VoiceSessionManager {
       if (recentSessions.length >= 2) {
         return {
           canStart: false,
-          reason: 'Too many sessions started recently. Please wait a moment.'
+          reason: "Too many sessions started recently. Please wait a moment."
         };
       }
       
       return { canStart: true };
 
-    } catch (error) {
-      console.error('Error checking session eligibility:', error);
+    } catch (error: any) {
+      console.error("Error checking session eligibility:", error);
       return {
         canStart: false,
-        reason: 'Unable to verify session eligibility'
+        reason: "Unable to verify session eligibility"
       };
     }
   }

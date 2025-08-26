@@ -30,7 +30,7 @@ app.post("/draft-room", authenticateUser, requireActiveSubscription, async (req:
       draftRoom
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Create draft room error:", error);
     res.status(500).json({ error: "Failed to create draft room" });
   }
@@ -50,7 +50,7 @@ app.post("/draft-room/:roomId/join", authenticateUser, requireActiveSubscription
       result
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Join draft room error:", error);
     res.status(500).json({ error: "Failed to join draft room" });
   }
@@ -70,7 +70,7 @@ app.post("/draft-room/:roomId/start", authenticateUser, requireActiveSubscriptio
       result
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Start draft error:", error);
     res.status(500).json({ error: "Failed to start draft" });
   }
@@ -100,7 +100,7 @@ app.post("/draft-room/:roomId/pick", authenticateUser, requireActiveSubscription
       result
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Make draft pick error:", error);
     res.status(500).json({ error: "Failed to make draft pick" });
   }
@@ -130,7 +130,7 @@ app.post("/draft-room/:roomId/message", authenticateUser, requireActiveSubscript
       message: "Message sent"
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Send draft message error:", error);
     res.status(500).json({ error: "Failed to send message" });
   }
@@ -166,7 +166,7 @@ app.get("/draft-room/:roomId", authenticateUser, async (req: AuthenticatedReques
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get draft room error:", error);
     res.status(500).json({ error: "Failed to get draft room" });
   }
@@ -212,7 +212,7 @@ app.get("/draft-room/:roomId/messages", authenticateUser, async (req: Authentica
       messages
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get draft messages error:", error);
     res.status(500).json({ error: "Failed to get messages" });
   }
@@ -246,7 +246,7 @@ app.get("/draft-rooms", authenticateUser, async (req: AuthenticatedRequest, res)
       draftRooms
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Get draft rooms error:", error);
     res.status(500).json({ error: "Failed to get draft rooms" });
   }
@@ -299,7 +299,7 @@ app.post("/draft-room/:roomId/leave", authenticateUser, async (req: Authenticate
       message: "Left draft room"
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Leave draft room error:", error);
     res.status(500).json({ error: "Failed to leave draft room" });
   }
@@ -347,7 +347,7 @@ app.post("/pusher/auth", authenticateUser, async (req: AuthenticatedRequest, res
       })
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Pusher auth error:", error);
     res.status(500).json({ error: "Failed to authenticate" });
   }
@@ -365,11 +365,11 @@ app.get("/health", async (req, res) => {
       health
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Real-time health check error:", error);
     res.status(500).json({ error: "Health check failed" });
   }
 });
 
-export const realtimeRoutes = functions.https.onRequest(app);
+export { app as realtimeRoutes };
 

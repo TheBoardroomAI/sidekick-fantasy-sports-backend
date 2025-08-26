@@ -1,4 +1,4 @@
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
 const db = admin.firestore();
 
@@ -45,7 +45,7 @@ export class CacheManager {
       }
 
       // Check Firestore cache
-      const cacheDoc = await db.collection('cache').doc(key).get();
+      const cacheDoc = await db.collection("cache").doc(key).get();
       
       if (!cacheDoc.exists) {
         return null;
@@ -71,8 +71,8 @@ export class CacheManager {
 
       return cacheData.data;
 
-    } catch (error) {
-      console.error('Cache get error:', error);
+    } catch (error: any) {
+      console.error("Cache get error:", error);
       return null;
     }
   }
@@ -109,7 +109,7 @@ export class CacheManager {
       };
 
       // Store in Firestore
-      await db.collection('cache').doc(key).set(cacheEntry);
+      await db.collection("cache").doc(key).set(cacheEntry);
 
       // Store in memory cache
       this.setMemoryCache(key, cacheEntry);
@@ -119,8 +119,8 @@ export class CacheManager {
 
       return true;
 
-    } catch (error) {
-      console.error('Cache set error:', error);
+    } catch (error: any) {
+      console.error("Cache set error:", error);
       return false;
     }
   }
@@ -136,12 +136,12 @@ export class CacheManager {
       }
 
       // Remove from Firestore
-      await db.collection('cache').doc(key).delete();
+      await db.collection("cache").doc(key).delete();
 
       return true;
 
-    } catch (error) {
-      console.error('Cache delete error:', error);
+    } catch (error: any) {
+      console.error("Cache delete error:", error);
       return false;
     }
   }
@@ -162,8 +162,8 @@ export class CacheManager {
 
       // Clear from Firestore
       for (const tag of tags) {
-        const snapshot = await db.collection('cache')
-          .where('tags', 'array-contains', tag)
+        const snapshot = await db.collection("cache")
+          .where("tags", "array-contains", tag)
           .get();
 
         const batch = db.batch();
@@ -177,11 +177,11 @@ export class CacheManager {
         }
       }
 
-      console.log(`Cleared ${deletedCount} cache entries with tags: ${tags.join(', ')}`);
+      console.log(`Cleared ${deletedCount} cache entries with tags: ${tags.join(", ")}`);
       return deletedCount;
 
-    } catch (error) {
-      console.error('Cache clear by tags error:', error);
+    } catch (error: any) {
+      console.error("Cache clear by tags error:", error);
       return 0;
     }
   }
@@ -210,8 +210,8 @@ export class CacheManager {
 
       return freshData;
 
-    } catch (error) {
-      console.error('Cache getOrSet error:', error);
+    } catch (error: any) {
+      console.error("Cache getOrSet error:", error);
       return null;
     }
   }
@@ -282,8 +282,8 @@ export class CacheManager {
       }
 
       // Clean Firestore cache
-      const expiredSnapshot = await db.collection('cache')
-        .where('expiresAt', '<=', now)
+      const expiredSnapshot = await db.collection("cache")
+        .where("expiresAt", "<=", now)
         .limit(500)
         .get();
 
@@ -304,8 +304,8 @@ export class CacheManager {
 
       return deletedCount;
 
-    } catch (error) {
-      console.error('Cache cleanup error:', error);
+    } catch (error: any) {
+      console.error("Cache cleanup error:", error);
       return 0;
     }
   }
@@ -329,7 +329,7 @@ export class CacheManager {
       };
 
       // Get Firestore cache stats
-      const cacheSnapshot = await db.collection('cache').get();
+      const cacheSnapshot = await db.collection("cache").get();
       const firestoreEntries = cacheSnapshot.docs.map(doc => doc.data() as CacheEntry);
       
       const firestoreStats = {
@@ -346,8 +346,8 @@ export class CacheManager {
         lastCleanup: new Date(this.lastCleanup)
       };
 
-    } catch (error) {
-      console.error('Error getting cache stats:', error);
+    } catch (error: any) {
+      console.error("Error getting cache stats:", error);
       return null;
     }
   }
@@ -355,7 +355,7 @@ export class CacheManager {
   // Warm cache with frequently accessed data
   static async warmCache(): Promise<void> {
     try {
-      console.log('Starting cache warmup...');
+      console.log("Starting cache warmup...");
 
       // Warm up common data that's frequently accessed
       const warmupTasks = [
@@ -366,10 +366,10 @@ export class CacheManager {
 
       await Promise.allSettled(warmupTasks);
       
-      console.log('Cache warmup completed');
+      console.log("Cache warmup completed");
 
-    } catch (error) {
-      console.error('Cache warmup error:', error);
+    } catch (error: any) {
+      console.error("Cache warmup error:", error);
     }
   }
 
@@ -378,10 +378,10 @@ export class CacheManager {
     try {
       // This would fetch and cache commonly accessed player data
       // Implementation depends on your data service
-      console.log('Warming up player data cache...');
+      console.log("Warming up player data cache...");
       
       // Example: Cache top players for each position
-      const positions = ['QB', 'RB', 'WR', 'TE'];
+      const positions = ["QB", "RB", "WR", "TE"];
       
       for (const position of positions) {
         const cacheKey = `players:top:${position}`;
@@ -389,18 +389,18 @@ export class CacheManager {
         // await this.getOrSet(cacheKey, () => dataService.getTopPlayers(position), 30 * 60 * 1000, ['players', position]);
       }
 
-    } catch (error) {
-      console.error('Player data warmup error:', error);
+    } catch (error: any) {
+      console.error("Player data warmup error:", error);
     }
   }
 
   // Warmup persona data
   private static async warmupPersonaData(): Promise<void> {
     try {
-      console.log('Warming up persona data cache...');
+      console.log("Warming up persona data cache...");
       
       // Cache persona configurations
-      const personas = ['oracle', 'rebel', 'mentor', 'analyst', 'rookie', 'zane'];
+      const personas = ["oracle", "rebel", "mentor", "analyst", "rookie", "zane"];
       
       for (const persona of personas) {
         const cacheKey = `persona:config:${persona}`;
@@ -408,22 +408,22 @@ export class CacheManager {
         // await this.getOrSet(cacheKey, () => personaService.getConfig(persona), 60 * 60 * 1000, ['personas']);
       }
 
-    } catch (error) {
-      console.error('Persona data warmup error:', error);
+    } catch (error: any) {
+      console.error("Persona data warmup error:", error);
     }
   }
 
   // Warmup subscription data
   private static async warmupSubscriptionData(): Promise<void> {
     try {
-      console.log('Warming up subscription data cache...');
+      console.log("Warming up subscription data cache...");
       
       // Cache subscription tier configurations
-      const cacheKey = 'subscription:tiers';
+      const cacheKey = "subscription:tiers";
       // await this.getOrSet(cacheKey, () => subscriptionService.getTiers(), 60 * 60 * 1000, ['subscriptions']);
 
-    } catch (error) {
-      console.error('Subscription data warmup error:', error);
+    } catch (error: any) {
+      console.error("Subscription data warmup error:", error);
     }
   }
 }

@@ -1,4 +1,4 @@
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
 const db = admin.firestore();
 
@@ -29,7 +29,7 @@ export class MemoryManager {
 
   // Initialize memory monitoring
   static initialize(): void {
-    console.log('Initializing memory manager...');
+    console.log("Initializing memory manager...");
     
     // Start memory monitoring
     this.startMemoryMonitoring();
@@ -44,7 +44,7 @@ export class MemoryManager {
       this.suggestGarbageCollection();
     }, 2 * 60 * 1000); // Every 2 minutes
 
-    console.log('Memory manager initialized');
+    console.log("Memory manager initialized");
   }
 
   // Start memory monitoring
@@ -86,14 +86,14 @@ export class MemoryManager {
         await this.storeMemoryMetrics(usage);
       }
 
-    } catch (error) {
-      console.error('Memory monitoring error:', error);
+    } catch (error: any) {
+      console.error("Memory monitoring error:", error);
     }
   }
 
   // Handle memory pressure
   private static async handleMemoryPressure(): Promise<void> {
-    console.log('Handling memory pressure...');
+    console.log("Handling memory pressure...");
 
     // 1. Clean up expired voice sessions
     const cleanedSessions = this.cleanupExpiredSessions();
@@ -101,10 +101,10 @@ export class MemoryManager {
 
     // 2. Clear old cache entries
     try {
-      const { CacheManager } = await import('./cacheManager');
+      const { CacheManager } = await import("./cacheManager");
       await CacheManager.cleanup();
-    } catch (error) {
-      console.error('Error cleaning cache during memory pressure:', error);
+    } catch (error: any) {
+      console.error("Error cleaning cache during memory pressure:", error);
     }
 
     // 3. Force garbage collection if available
@@ -223,20 +223,20 @@ export class MemoryManager {
   // Force garbage collection if available
   private static forceGarbageCollection(): void {
     if (global.gc) {
-      console.log('Forcing garbage collection...');
+      console.log("Forcing garbage collection...");
       global.gc();
       
       const memUsage = process.memoryUsage();
       console.log(`Memory after GC - Heap: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
     } else {
-      console.log('Garbage collection not available (run with --expose-gc flag)');
+      console.log("Garbage collection not available (run with --expose-gc flag)");
     }
   }
 
   // Store memory metrics
   private static async storeMemoryMetrics(usage: MemoryUsage): Promise<void> {
     try {
-      await db.collection('memory_metrics').add({
+      await db.collection("memory_metrics").add({
         ...usage,
         activeSessions: this.voiceSessions.size,
         sessionDetails: Array.from(this.voiceSessions.values()).map(session => ({
@@ -246,8 +246,8 @@ export class MemoryManager {
           hasProcessedData: !!session.processedData
         }))
       });
-    } catch (error) {
-      console.error('Error storing memory metrics:', error);
+    } catch (error: any) {
+      console.error("Error storing memory metrics:", error);
     }
   }
 
@@ -281,7 +281,7 @@ export class MemoryManager {
 
   // Clean up all resources
   static cleanup(): void {
-    console.log('Cleaning up memory manager...');
+    console.log("Cleaning up memory manager...");
 
     // Stop monitoring
     if (this.memoryMonitorInterval) {
@@ -294,13 +294,13 @@ export class MemoryManager {
       this.cleanupVoiceSession(sessionId);
     }
 
-    console.log('Memory manager cleanup completed');
+    console.log("Memory manager cleanup completed");
   }
 
   // Create safe buffer from audio data
   static createSafeAudioBuffer(audioData: string | ArrayBuffer): ArrayBuffer | null {
     try {
-      if (typeof audioData === 'string') {
+      if (typeof audioData === "string") {
         // Convert base64 to ArrayBuffer
         const binaryString = atob(audioData);
         const bytes = new Uint8Array(binaryString.length);
@@ -315,8 +315,8 @@ export class MemoryManager {
       }
       
       return null;
-    } catch (error) {
-      console.error('Error creating audio buffer:', error);
+    } catch (error: any) {
+      console.error("Error creating audio buffer:", error);
       return null;
     }
   }
@@ -354,7 +354,7 @@ export class MemoryManager {
         }
         
         return result;
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Function ${functionName} failed:`, error);
         throw error;
       }

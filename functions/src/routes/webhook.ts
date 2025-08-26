@@ -1,30 +1,30 @@
-import * as functions from 'firebase-functions';
-import { SubscriptionService } from '../services/subscription';
+import * as functions from "firebase-functions";
+import { SubscriptionService } from "../services/subscription";
 
 // Stripe webhook handler with proper signature validation
 export const stripeWebhook = functions.https.onRequest(async (req, res) => {
   // CORS headers
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Stripe-Signature');
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Stripe-Signature");
   
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
     return;
   }
   
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
   try {
     // Get the signature from headers
-    const signature = req.headers['stripe-signature'];
+    const signature = req.headers["stripe-signature"];
     
     if (!signature) {
-      console.error('Missing Stripe signature header');
-      res.status(400).json({ error: 'Missing signature header' });
+      console.error("Missing Stripe signature header");
+      res.status(400).json({ error: "Missing signature header" });
       return;
     }
 
@@ -32,8 +32,8 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
     const payload = req.rawBody?.toString() || JSON.stringify(req.body);
     
     if (!payload) {
-      console.error('Missing request payload');
-      res.status(400).json({ error: 'Missing payload' });
+      console.error("Missing request payload");
+      res.status(400).json({ error: "Missing payload" });
       return;
     }
 
@@ -42,10 +42,10 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
     try {
       event = SubscriptionService.validateWebhookSignature(payload, signature as string);
     } catch (error: any) {
-      console.error('Webhook signature verification failed:', error.message);
+      console.error("Webhook signature verification failed:", error?.message || "Unknown error");
       res.status(400).json({ 
-        error: 'Webhook signature verification failed',
-        details: error.message 
+        error: "Webhook signature verification failed",
+        details: error?.message || "Unknown error" 
       });
       return;
     }
@@ -69,7 +69,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
       
       // Return 500 so Stripe will retry the webhook
       res.status(500).json({
-        error: 'Event processing failed',
+        error: "Event processing failed",
         eventId: event.id,
         eventType: event.type,
         details: processingError.message
@@ -77,10 +77,10 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
     }
 
   } catch (error: any) {
-    console.error('Webhook handler error:', error);
+    console.error("Webhook handler error:", error);
     res.status(500).json({
-      error: 'Internal server error',
-      details: error.message
+      error: "Internal server error",
+      details: error?.message || "Unknown error"
     });
   }
 });
@@ -88,25 +88,25 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
 // Subscription management endpoints
 export const createCheckoutSession = functions.https.onRequest(async (req, res) => {
   // CORS headers
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
   
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
     return;
   }
   
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
   try {
     // Verify authentication
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
-      res.status(401).json({ error: 'Authentication required' });
+      res.status(401).json({ error: "Authentication required" });
       return;
     }
 
@@ -118,14 +118,14 @@ export const createCheckoutSession = functions.https.onRequest(async (req, res) 
     const { userId, tier } = req.body;
     
     if (!userId || !tier) {
-      res.status(400).json({ error: 'Missing userId or tier' });
+      res.status(400).json({ error: "Missing userId or tier" });
       return;
     }
 
     // Validate tier
-    const validTiers = ['rookie', 'pro', 'champion'];
+    const validTiers = ["rookie", "pro", "champion"];
     if (!validTiers.includes(tier)) {
-      res.status(400).json({ error: 'Invalid subscription tier' });
+      res.status(400).json({ error: "Invalid subscription tier" });
       return;
     }
 
@@ -138,10 +138,10 @@ export const createCheckoutSession = functions.https.onRequest(async (req, res) 
     });
 
   } catch (error: any) {
-    console.error('Create checkout session error:', error);
+    console.error("Create checkout session error:", error);
     res.status(500).json({
-      error: 'Failed to create checkout session',
-      details: error.message
+      error: "Failed to create checkout session",
+      details: error?.message || "Unknown error"
     });
   }
 });
@@ -149,25 +149,25 @@ export const createCheckoutSession = functions.https.onRequest(async (req, res) 
 // Get subscription status
 export const getSubscriptionStatus = functions.https.onRequest(async (req, res) => {
   // CORS headers
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
   
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
     return;
   }
   
-  if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "GET") {
+    res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
   try {
     // Verify authentication
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
-      res.status(401).json({ error: 'Authentication required' });
+      res.status(401).json({ error: "Authentication required" });
       return;
     }
 
@@ -175,7 +175,7 @@ export const getSubscriptionStatus = functions.https.onRequest(async (req, res) 
     const userId = req.query.userId as string;
     
     if (!userId) {
-      res.status(400).json({ error: 'Missing userId' });
+      res.status(400).json({ error: "Missing userId" });
       return;
     }
 
@@ -188,10 +188,10 @@ export const getSubscriptionStatus = functions.https.onRequest(async (req, res) 
     });
 
   } catch (error: any) {
-    console.error('Get subscription status error:', error);
+    console.error("Get subscription status error:", error);
     res.status(500).json({
-      error: 'Failed to get subscription status',
-      details: error.message
+      error: "Failed to get subscription status",
+      details: error?.message || "Unknown error"
     });
   }
 });
@@ -200,14 +200,14 @@ export const getSubscriptionStatus = functions.https.onRequest(async (req, res) 
 export const webhookRoutes = functions.https.onRequest(async (req, res) => {
   const path = req.path;
   
-  if (path === '/stripe') {
+  if (path === "/stripe") {
     return stripeWebhook(req, res);
-  } else if (path === '/checkout') {
+  } else if (path === "/checkout") {
     return createCheckoutSession(req, res);
-  } else if (path === '/status') {
+  } else if (path === "/status") {
     return getSubscriptionStatus(req, res);
   } else {
-    res.status(404).json({ error: 'Webhook endpoint not found' });
+    res.status(404).json({ error: "Webhook endpoint not found" });
   }
 });
 

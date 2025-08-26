@@ -54,7 +54,7 @@ app.post("/register", async (req, res) => {
       apiToken
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Registration error:", error);
     res.status(500).json({ error: "Registration failed" });
   }
@@ -98,7 +98,7 @@ app.post("/login", async (req, res) => {
       apiToken
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Login error:", error);
     res.status(401).json({ error: "Invalid credentials" });
   }
@@ -129,7 +129,7 @@ app.get("/profile", authenticateUser, async (req: AuthenticatedRequest, res) => 
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Profile error:", error);
     res.status(500).json({ error: "Failed to get profile" });
   }
@@ -159,7 +159,7 @@ app.put("/profile", authenticateUser, async (req: AuthenticatedRequest, res) => 
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Profile update error:", error);
     res.status(500).json({ error: "Failed to update profile" });
   }
@@ -186,7 +186,7 @@ app.post("/subscribe", authenticateUser, async (req: AuthenticatedRequest, res) 
       checkoutUrl
     });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Subscription error:", error);
     res.status(500).json({ error: "Failed to create subscription" });
   }
@@ -200,7 +200,7 @@ app.get("/subscription", authenticateUser, async (req: AuthenticatedRequest, res
     const status = await SubscriptionService.getSubscriptionStatus(req.user!.uid);
     res.json(status);
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Subscription status error:", error);
     res.status(500).json({ error: "Failed to get subscription status" });
   }
@@ -218,23 +218,23 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (re
     const event = req.body;
 
     switch (event.type) {
-      case "customer.subscription.created":
-        await SubscriptionService.handleSubscriptionCreated(event.data.object);
-        break;
-      case "customer.subscription.deleted":
-        await SubscriptionService.handleSubscriptionCanceled(event.data.object);
-        break;
-      default:
-        functions.logger.info(`Unhandled event type: ${event.type}`);
+    case "customer.subscription.created":
+      await SubscriptionService.handleSubscriptionCreated(event.data.object);
+      break;
+    case "customer.subscription.deleted":
+      await SubscriptionService.handleSubscriptionCanceled(event.data.object);
+      break;
+    default:
+      functions.logger.info(`Unhandled event type: ${event.type}`);
     }
 
     res.json({ received: true });
 
-  } catch (error) {
+  } catch (error: any) {
     functions.logger.error("Webhook error:", error);
     res.status(400).json({ error: "Webhook error" });
   }
 });
 
-export const authRoutes = functions.https.onRequest(app);
+export { app as authRoutes };
 

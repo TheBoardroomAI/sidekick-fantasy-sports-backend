@@ -1,5 +1,5 @@
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
 
 interface RateLimitConfig {
   windowMs: number;
@@ -39,7 +39,7 @@ export function createRateLimiter(config: RateLimitConfig) {
     } else {
       // Use user ID if available, otherwise IP
       const userId = (req as any).user?.uid;
-      key = userId || req.ip || 'unknown';
+      key = userId || req.ip || "unknown";
     }
     
     // Get or create rate limit entry
@@ -56,7 +56,7 @@ export function createRateLimiter(config: RateLimitConfig) {
       const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
       
       res.status(429).json({
-        error: 'Rate limit exceeded',
+        error: "Rate limit exceeded",
         message: `Too many requests. Try again in ${retryAfter} seconds.`,
         retryAfter,
         limit: config.maxRequests,
@@ -71,9 +71,9 @@ export function createRateLimiter(config: RateLimitConfig) {
     
     // Add rate limit headers
     res.set({
-      'X-RateLimit-Limit': config.maxRequests.toString(),
-      'X-RateLimit-Remaining': (config.maxRequests - entry.count).toString(),
-      'X-RateLimit-Reset': entry.resetTime.toString()
+      "X-RateLimit-Limit": config.maxRequests.toString(),
+      "X-RateLimit-Remaining": (config.maxRequests - entry.count).toString(),
+      "X-RateLimit-Reset": entry.resetTime.toString()
     });
     
     if (next) {
@@ -96,7 +96,7 @@ export const rateLimiters = {
     maxRequests: 5,
     keyGenerator: (req) => {
       // Rate limit by IP for auth to prevent brute force
-      return req.ip || 'unknown';
+      return req.ip || "unknown";
     }
   }),
   
@@ -138,10 +138,10 @@ export function withRateLimit(
       
       // If rate limit passed, execute the handler
       await handler(req, res);
-    } catch (error) {
-      console.error('Rate limiter error:', error);
+    } catch (error: any) {
+      console.error("Rate limiter error:", error);
       res.status(500).json({
-        error: 'Internal server error'
+        error: "Internal server error"
       });
     }
   };
