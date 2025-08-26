@@ -1,0 +1,160 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions for security
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function hasValidSubscription(tier) {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionTier == tier;
+    }
+    
+    function hasMinimumTier(requiredTier) {
+      let userTier = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionTier;
+      return userTier == 'champion' || 
+             (userTier == 'pro' && requiredTier in ['pro', 'rookie']) ||
+             (userTier == 'rookie' && requiredTier == 'rookie');
+    }
+    
+    function isValidUserData() {
+      return request.resource.data.keys().hasAll(['email', 'displayName', 'subscriptionTier']) &&
+             request.resource.data.subscriptionTier in ['rookie', 'pro', 'champion'];
+    }
+    
+    // Users collection - users can only access their own data
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserData();
+      allow update: if isOwner(userId) && 
+                       isValidUserData() &&
+                       // Prevent users from upgrading their own subscription
+                       request.resource.data.subscriptionTier == resource.data.subscriptionTier;
+      allow delete: if false; // Never allow user deletion via client
+    }
+    
+    // Conversations - private to participants
+    match /conversations/{conversationId} {
+      allow read: if isAuthenticated() && 
+                     request.auth.uid in resource.data.participants;
+      allow create: if isAuthenticated() && 
+                       request.auth.uid in request.resource.data.participants &&
+                       request.resource.data.keys().hasAll(['participants', 'persona', 'createdAt']);
+      allow update: if isAuthenticated() && 
+                       request.auth.uid in resource.data.participants &&
+                       // Only allow updating lastMessage and updatedAt
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'updatedAt']);
+      allow delete: if isAuthenticated() && 
+                       request.auth.uid in resource.data.participants;
+    }
+    
+    // Messages within conversations
+    match /conversations/{conversationId}/messages/{messageId} {
+      allow read: if isAuthenticated() && 
+                     request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+      allow create: if isAuthenticated() && 
+                       request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
+                       request.resource.data.senderId == request.auth.uid;
+      allow update: if false; // Messages are immutable
+      allow delete: if isAuthenticated() && 
+                       request.resource.data.senderId == request.auth.uid;
+    }
+    
+    // Subscription data - read-only for users, write-only for server
+    match /subscriptions/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Only server can write subscription data
+    }
+    
+    // Premium personas - require Pro or Champion subscription
+    match /personas/{personaId} {
+      allow read: if isAuthenticated() && 
+                     (personaId in ['rookie', 'mentor'] || hasMinimumTier('pro'));
+      allow write: if false; // Only server can modify persona configs
+    }
+    
+    // Premium sports data - require appropriate subscription tier
+    match /premium_data/{document} {
+      allow read: if isAuthenticated() && hasMinimumTier('pro');
+      allow write: if false; // Only server can write sports data
+    }
+    
+    // Champion-only advanced analytics
+    match /advanced_analytics/{document} {
+      allow read: if isAuthenticated() && hasValidSubscription('champion');
+      allow write: if false; // Only server can write analytics
+    }
+    
+    // Draft rooms - require Pro or Champion subscription
+    match /draft_rooms/{draftId} {
+      allow read: if isAuthenticated() && 
+                     hasMinimumTier('pro') &&
+                     request.auth.uid in resource.data.participants;
+      allow create: if isAuthenticated() && 
+                       hasMinimumTier('pro') &&
+                       request.auth.uid in request.resource.data.participants;
+      allow update: if isAuthenticated() && 
+                       hasMinimumTier('pro') &&
+                       request.auth.uid in resource.data.participants;
+      allow delete: if isAuthenticated() && 
+                       resource.data.ownerId == request.auth.uid;
+    }
+    
+    // Draft room messages
+    match /draft_rooms/{draftId}/messages/{messageId} {
+      allow read: if isAuthenticated() && 
+                     request.auth.uid in get(/databases/$(database)/documents/draft_rooms/$(draftId)).data.participants;
+      allow create: if isAuthenticated() && 
+                       request.auth.uid in get(/databases/$(database)/documents/draft_rooms/$(draftId)).data.participants &&
+                       request.resource.data.senderId == request.auth.uid;
+      allow update: if false; // Messages are immutable
+      allow delete: if false; // Messages cannot be deleted
+    }
+    
+    // User preferences and settings
+    match /user_preferences/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Notifications - users can read their own, server can write
+    match /notifications/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Only server can create notifications
+    }
+    
+    // Public data that everyone can read (cached sports data, etc.)
+    match /public_data/{document} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only server can write public data
+    }
+    
+    // Error logs - write-only for error reporting
+    match /error_logs/{logId} {
+      allow read: if false; // Only server can read error logs
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+    
+    // Analytics events - write-only for tracking
+    match /analytics/{eventId} {
+      allow read: if false; // Only server can read analytics
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
