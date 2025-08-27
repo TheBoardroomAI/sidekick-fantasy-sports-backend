@@ -2,7 +2,7 @@ import * as admin from "firebase-admin";
 import * as jwt from "jsonwebtoken";
 import { db, auth, COLLECTIONS } from "../config/firebase";
 import { User, CreateUserData, UpdateUserData } from "../models/user";
-import { stripe } from "../config/stripe";
+import { getStripeClient } from "../config/stripe";
 
 export class AuthService {
   // Export auth for route access
@@ -14,6 +14,7 @@ export class AuthService {
   static async createUser(userData: CreateUserData): Promise<User> {
     try {
       // Create Stripe customer
+      const stripe = getStripeClient(); // Lazy initialization
       const stripeCustomer = await stripe.customers.create({
         email: userData.email,
         name: userData.displayName,

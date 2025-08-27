@@ -1,16 +1,21 @@
 import Stripe from "stripe";
-import * as functions from "firebase-functions/v1";
+import { defineSecret } from "firebase-functions/params";
 
-// Initialize Stripe with secret key from Firebase Secret Manager
-const stripeSecretKey = functions.config().stripe?.secret_key || process.env.STRIPE_SECRET_KEY;
+// Define the secret parameter
+const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 
-if (!stripeSecretKey) {
-  throw new Error("Stripe secret key not found in Firebase config or environment variables");
+// Lazy initialization function - only called at runtime
+export function getStripeClient(): Stripe {
+  const secretValue = stripeSecretKey.value();
+
+  if (!secretValue) {
+    throw new Error("Stripe secret key not found in Firebase Secret Manager");
+  }
+
+  return new Stripe(secretValue, {
+    apiVersion: "2025-07-30.basil",
+  });
 }
-
-export const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: "2025-07-30.basil",
-});
 
 // Subscription tier pricing
 export const STRIPE_PRICES = {

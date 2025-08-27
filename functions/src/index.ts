@@ -1,5 +1,9 @@
 import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
+import { defineSecret } from "firebase-functions/params";
+
+// Define secrets
+const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
@@ -67,9 +71,12 @@ export const healthCheck = functions
     });
   });
 
-// Authentication routes (critical - keep warm)
+// Authentication routes (critical - keep warm) - requires Stripe secret for subscriptions
 export const auth = functions
-  .runWith(criticalConfig)
+  .runWith({
+    ...criticalConfig,
+    secrets: [stripeSecretKey] // Add secret access for subscription operations
+  })
   .https.onRequest(authRoutes);
 
 // Data routes (high usage - keep warm)
@@ -102,13 +109,14 @@ export const realtime = functions
   .runWith(criticalConfig)
   .https.onRequest(realtimeRoutes);
 
-// Webhook routes (critical for payments - keep warm)
+// Webhook routes (critical for payments - keep warm) - requires Stripe secret
 export const webhook = functions
   .runWith({
     memory: "512MB" as const,
     timeoutSeconds: 30,
     minInstances: 1, // Always keep warm for Stripe webhooks
-    maxInstances: 10
+    maxInstances: 10,
+    secrets: [stripeSecretKey] // Add secret access
   })
   .https.onRequest(webhookRoutes);
 

@@ -1,4 +1,4 @@
-import { stripe, STRIPE_PRICES, TIER_FEATURES } from "../config/stripe";
+import { getStripeClient, STRIPE_PRICES, TIER_FEATURES } from "../config/stripe";
 import { db, COLLECTIONS, SubscriptionTier } from "../config/firebase";
 import { AuthService } from "./auth";
 
@@ -13,6 +13,8 @@ export class SubscriptionService {
     interval: "monthly" | "yearly" = "monthly"
   ): Promise<string> {
     try {
+      const stripe = getStripeClient(); // Lazy initialization at runtime
+      
       const user = await AuthService.getUserByUid(userId);
       if (!user || !user.stripeCustomerId) {
         throw new Error("User or Stripe customer not found");
@@ -150,6 +152,7 @@ export class SubscriptionService {
         return { status: "inactive", tier: "rookie" };
       }
 
+      const stripe = getStripeClient(); // Lazy initialization
       const subscription = await stripe.subscriptions.retrieve(user.subscriptionId);
       
       return {
