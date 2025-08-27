@@ -189,21 +189,21 @@ export class SubscriptionService {
   static async processWebhookEvent(event: any): Promise<void> {
     try {
       switch (event.type) {
-        case "customer.subscription.created":
-        case "customer.subscription.updated":
-          await this.handleSubscriptionUpdate(event.data.object);
-          break;
-        case "customer.subscription.deleted":
-          await this.handleSubscriptionCancellation(event.data.object);
-          break;
-        case "invoice.payment_succeeded":
-          await this.handlePaymentSuccess(event.data.object);
-          break;
-        case "invoice.payment_failed":
-          await this.handlePaymentFailure(event.data.object);
-          break;
-        default:
-          console.log(`Unhandled event type: ${event.type}`);
+      case "customer.subscription.created":
+      case "customer.subscription.updated":
+        await this.handleSubscriptionUpdate(event.data.object);
+        break;
+      case "customer.subscription.deleted":
+        await this.handleSubscriptionCancellation(event.data.object);
+        break;
+      case "invoice.payment_succeeded":
+        await this.handlePaymentSuccess(event.data.object);
+        break;
+      case "invoice.payment_failed":
+        await this.handlePaymentFailure(event.data.object);
+        break;
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
       }
     } catch (error: any) {
       console.error("Webhook event processing failed:", error?.message || "Unknown error");
