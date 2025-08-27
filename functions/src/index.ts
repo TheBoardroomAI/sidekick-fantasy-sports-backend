@@ -83,8 +83,7 @@ export const persona = functions
     memory: "2GB" as const,
     timeoutSeconds: 120, // AI operations may take longer
     minInstances: 1,
-    maxInstances: 20,
-    concurrency: 10 // Lower concurrency for AI operations
+    maxInstances: 20
   })
   .https.onRequest(personaRoutes);
 
@@ -94,8 +93,7 @@ export const zane = functions
     memory: "1GB" as const,
     timeoutSeconds: 90,
     minInstances: 1,
-    maxInstances: 15,
-    concurrency: 15
+    maxInstances: 15
   })
   .https.onRequest(zaneRoutes);
 
@@ -110,8 +108,7 @@ export const webhook = functions
     memory: "512MB" as const,
     timeoutSeconds: 30,
     minInstances: 1, // Always keep warm for Stripe webhooks
-    maxInstances: 10,
-    concurrency: 20
+    maxInstances: 10
   })
   .https.onRequest(webhookRoutes);
 

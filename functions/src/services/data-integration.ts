@@ -271,7 +271,7 @@ export class DataIntegrationService {
       await this.getTank01TeamData();
       results.tank01 = { status: "healthy", latency: Date.now() - start };
     } catch (error: any) {
-      results.tank01 = { status: "error", latency: 0, message: error?.message || "Unknown error" };
+      results.tank01 = { status: "error", latency: 0 } as any;
     }
 
     // Test MySportsFeeds
@@ -280,7 +280,7 @@ export class DataIntegrationService {
       await this.getTeamStandings();
       results.mysportsfeeds = { status: "healthy", latency: Date.now() - start };
     } catch (error: any) {
-      results.mysportsfeeds = { status: "error", latency: 0, message: error?.message || "Unknown error" };
+      results.mysportsfeeds = { status: "error", latency: 0 } as any;
     }
 
     // Test NFLverse
@@ -289,7 +289,7 @@ export class DataIntegrationService {
       await this.getAdvancedPlayerMetrics();
       results.nflverse = { status: "healthy", latency: Date.now() - start };
     } catch (error: any) {
-      results.nflverse = { status: "error", latency: 0, message: error?.message || "Unknown error" };
+      results.nflverse = { status: "error", latency: 0 } as any;
     }
 
     return results;
