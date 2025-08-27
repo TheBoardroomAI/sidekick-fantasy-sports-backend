@@ -4,6 +4,7 @@ import { defineSecret } from "firebase-functions/params";
 
 // Define secrets
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
+const openaiApiKey = defineSecret("OPENAI_API_KEY");
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
@@ -84,13 +85,14 @@ export const data = functions
   .runWith(optimizedConfig)
   .https.onRequest(dataRoutes);
 
-// Persona routes (AI-heavy - optimized for performance)
+// Persona routes (AI-heavy - optimized for performance) - requires OpenAI secret
 export const persona = functions
   .runWith({
-    memory: "2GB" as const,
+    memory: "1GB" as const, // Reduced from 2GB to avoid limits
     timeoutSeconds: 120, // AI operations may take longer
     minInstances: 1,
-    maxInstances: 20
+    maxInstances: 10, // Reduced from 20 to avoid limits
+    secrets: [openaiApiKey] // Add secret access
   })
   .https.onRequest(personaRoutes);
 

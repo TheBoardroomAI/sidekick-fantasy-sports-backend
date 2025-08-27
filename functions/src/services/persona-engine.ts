@@ -1,14 +1,26 @@
 import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import axios from "axios";
+import { defineSecret } from "firebase-functions/params";
 import { db, COLLECTIONS } from "../config/firebase";
 import { DataIntegrationService } from "./data-integration";
 import { VoiceSystemService, PERSONA_VOICES } from "./voice-system";
 import { SubscriptionService } from "./subscription";
 
-// OpenAI Configuration
-const OPENAI_API_KEY = functions.config().openai?.api_key || process.env.OPENAI_API_KEY;
-const OPENAI_BASE_URL = "https://api.openai.com/v1";
+// Define secrets
+const openaiApiKey = defineSecret("OPENAI_API_KEY");
+
+// OpenAI Configuration - lazy initialization
+function getOpenAIConfig() {
+  const apiKey = openaiApiKey.value();
+  if (!apiKey) {
+    throw new Error("OpenAI API key not found in Firebase Secret Manager");
+  }
+  return {
+    apiKey,
+    baseURL: "https://api.openai.com/v1"
+  };
+}
 
 // Persona Configurations
 export const PERSONA_CONFIGS = {
@@ -222,8 +234,10 @@ Remember to stay in character as ${personaConfig.name} and use the personality t
         { role: "user", content: query }
       ];
 
+      const openaiConfig = getOpenAIConfig(); // Lazy initialization
+
       const response = await axios.post(
-        `${OPENAI_BASE_URL}/chat/completions`,
+        `${openaiConfig.baseURL}/chat/completions`,
         {
           model: "gpt-4",
           messages,
@@ -234,7 +248,7 @@ Remember to stay in character as ${personaConfig.name} and use the personality t
         },
         {
           headers: {
-            "Authorization": `Bearer ${OPENAI_API_KEY}`,
+            "Authorization": `Bearer ${openaiConfig.apiKey}`,
             "Content-Type": "application/json"
           }
         }
