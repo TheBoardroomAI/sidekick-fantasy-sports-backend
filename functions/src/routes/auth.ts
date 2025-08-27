@@ -1,6 +1,6 @@
-import * as functions from "firebase-functions";
-import * as express from "express";
-import * as cors from "cors";
+import * as functions from "firebase-functions/v1";
+import express from "express";
+import cors from "cors";
 import { AuthService } from "../services/auth";
 import { SubscriptionService } from "../services/subscription";
 import { authenticateUser, AuthenticatedRequest } from "../middleware/auth";
@@ -43,7 +43,7 @@ app.post("/register", async (req, res) => {
     // Generate API token
     const apiToken = AuthService.generateApiToken(userData);
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "User registered successfully",
       user: {
         uid: userData.uid,
@@ -56,7 +56,7 @@ app.post("/register", async (req, res) => {
 
   } catch (error: any) {
     functions.logger.error("Registration error:", error);
-    res.status(500).json({ error: "Registration failed" });
+    return res.status(500).json({ error: "Registration failed" });
   }
 });
 
@@ -86,7 +86,7 @@ app.post("/login", async (req, res) => {
     // Generate API token
     const apiToken = AuthService.generateApiToken(user);
 
-    res.json({
+    return res.json({
       message: "Login successful",
       user: {
         uid: user.uid,
@@ -100,7 +100,7 @@ app.post("/login", async (req, res) => {
 
   } catch (error: any) {
     functions.logger.error("Login error:", error);
-    res.status(401).json({ error: "Invalid credentials" });
+    return res.status(401).json({ error: "Invalid credentials" });
   }
 });
 
@@ -114,7 +114,7 @@ app.get("/profile", authenticateUser, async (req: AuthenticatedRequest, res) => 
       return res.status(404).json({ error: "User not found" });
     }
 
-    res.json({
+    return res.json({
       user: {
         uid: user.uid,
         email: user.email,
@@ -131,7 +131,7 @@ app.get("/profile", authenticateUser, async (req: AuthenticatedRequest, res) => 
 
   } catch (error: any) {
     functions.logger.error("Profile error:", error);
-    res.status(500).json({ error: "Failed to get profile" });
+    return res.status(500).json({ error: "Failed to get profile" });
   }
 });
 
@@ -148,7 +148,7 @@ app.put("/profile", authenticateUser, async (req: AuthenticatedRequest, res) => 
       preferences
     });
 
-    res.json({
+    return res.json({
       message: "Profile updated successfully",
       user: {
         uid: updatedUser.uid,
@@ -161,7 +161,7 @@ app.put("/profile", authenticateUser, async (req: AuthenticatedRequest, res) => 
 
   } catch (error: any) {
     functions.logger.error("Profile update error:", error);
-    res.status(500).json({ error: "Failed to update profile" });
+    return res.status(500).json({ error: "Failed to update profile" });
   }
 });
 
@@ -182,13 +182,13 @@ app.post("/subscribe", authenticateUser, async (req: AuthenticatedRequest, res) 
       interval
     );
 
-    res.json({
+    return res.json({
       checkoutUrl
     });
 
   } catch (error: any) {
     functions.logger.error("Subscription error:", error);
-    res.status(500).json({ error: "Failed to create subscription" });
+    return res.status(500).json({ error: "Failed to create subscription" });
   }
 });
 
@@ -198,11 +198,11 @@ app.post("/subscribe", authenticateUser, async (req: AuthenticatedRequest, res) 
 app.get("/subscription", authenticateUser, async (req: AuthenticatedRequest, res) => {
   try {
     const status = await SubscriptionService.getSubscriptionStatus(req.user!.uid);
-    res.json(status);
+    return res.json(status);
 
   } catch (error: any) {
     functions.logger.error("Subscription status error:", error);
-    res.status(500).json({ error: "Failed to get subscription status" });
+    return res.status(500).json({ error: "Failed to get subscription status" });
   }
 });
 
@@ -211,8 +211,6 @@ app.get("/subscription", authenticateUser, async (req: AuthenticatedRequest, res
  */
 app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (req, res) => {
   try {
-    const sig = req.headers["stripe-signature"];
-    const endpointSecret = functions.config().stripe?.webhook_secret;
 
     // Verify webhook signature (simplified for now)
     const event = req.body;
@@ -228,11 +226,11 @@ app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (re
       functions.logger.info(`Unhandled event type: ${event.type}`);
     }
 
-    res.json({ received: true });
+    return res.json({ received: true });
 
   } catch (error: any) {
     functions.logger.error("Webhook error:", error);
-    res.status(400).json({ error: "Webhook error" });
+    return res.status(400).json({ error: "Webhook error" });
   }
 });
 

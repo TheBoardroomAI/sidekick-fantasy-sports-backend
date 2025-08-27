@@ -1,4 +1,5 @@
-import * as functions from "firebase-functions";
+import { Response } from "express";
+import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 
 const db = admin.firestore();
@@ -63,7 +64,7 @@ const ENDPOINT_REQUIREMENTS: Record<string, SubscriptionRequirement> = {
 
 export async function enforceSubscriptionTier(
   req: functions.https.Request & { user?: any },
-  res: functions.Response,
+  res: Response,
   next?: () => void
 ): Promise<void> {
   try {
@@ -226,7 +227,7 @@ function getFeaturesByTier(tier: string): string[] {
 
 // Middleware factory for specific requirements
 export function requireSubscription(requirement: SubscriptionRequirement) {
-  return async (req: functions.https.Request & { user?: any }, res: functions.Response, next?: () => void) => {
+  return async (req: functions.https.Request & { user?: any }, res: Response, next?: () => void) => {
     const userId = req.user?.uid;
     
     if (!userId) {

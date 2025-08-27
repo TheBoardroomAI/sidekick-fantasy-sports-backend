@@ -155,12 +155,80 @@ export class SubscriptionService {
       return {
         status: subscription.status,
         tier: user.subscriptionTier,
-        currentPeriodEnd: new Date(subscription.current_period_end as number * 1000),
+        currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
         cancelAtPeriodEnd: subscription.cancel_at_period_end
       };
     } catch (error: any) {
       throw new Error(`Failed to get subscription status: ${error}`);
     }
+  }
+
+  /**
+   * Validate Stripe webhook signature
+   */
+  static validateWebhookSignature(payload: string, signature: string): boolean {
+    try {
+      const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+      const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      
+      if (!endpointSecret) {
+        throw new Error("Webhook secret not configured");
+      }
+
+      stripe.webhooks.constructEvent(payload, signature, endpointSecret);
+      return true;
+    } catch (error: any) {
+      console.error("Webhook signature validation failed:", error?.message || "Unknown error");
+      return false;
+    }
+  }
+
+  /**
+   * Process Stripe webhook event
+   */
+  static async processWebhookEvent(event: any): Promise<void> {
+    try {
+      switch (event.type) {
+        case "customer.subscription.created":
+        case "customer.subscription.updated":
+          await this.handleSubscriptionUpdate(event.data.object);
+          break;
+        case "customer.subscription.deleted":
+          await this.handleSubscriptionCancellation(event.data.object);
+          break;
+        case "invoice.payment_succeeded":
+          await this.handlePaymentSuccess(event.data.object);
+          break;
+        case "invoice.payment_failed":
+          await this.handlePaymentFailure(event.data.object);
+          break;
+        default:
+          console.log(`Unhandled event type: ${event.type}`);
+      }
+    } catch (error: any) {
+      console.error("Webhook event processing failed:", error?.message || "Unknown error");
+      throw error;
+    }
+  }
+
+  private static async handleSubscriptionUpdate(subscription: any): Promise<void> {
+    // Implementation for subscription updates
+    console.log("Handling subscription update:", subscription.id);
+  }
+
+  private static async handleSubscriptionCancellation(subscription: any): Promise<void> {
+    // Implementation for subscription cancellation
+    console.log("Handling subscription cancellation:", subscription.id);
+  }
+
+  private static async handlePaymentSuccess(invoice: any): Promise<void> {
+    // Implementation for payment success
+    console.log("Handling payment success:", invoice.id);
+  }
+
+  private static async handlePaymentFailure(invoice: any): Promise<void> {
+    // Implementation for payment failure
+    console.log("Handling payment failure:", invoice.id);
   }
 }
 

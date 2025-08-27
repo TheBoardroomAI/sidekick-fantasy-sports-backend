@@ -1,4 +1,5 @@
-import * as functions from "firebase-functions";
+import { Response } from "express";
+import * as functions from "firebase-functions/v1";
 import DOMPurify from "isomorphic-dompurify";
 
 // Input validation configuration
@@ -252,7 +253,7 @@ export class InputValidator {
 
 // Middleware factory for request validation
 export function validateRequest(schema: ValidationSchema) {
-  return (req: functions.https.Request, res: functions.Response, next?: () => void): void => {
+  return (req: functions.https.Request, res: Response, next?: () => void): void => {
     try {
       const result = InputValidator.validate(req.body, schema);
       

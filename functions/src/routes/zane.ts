@@ -1,6 +1,6 @@
-import * as functions from "firebase-functions";
-import * as express from "express";
-import * as cors from "cors";
+import * as functions from "firebase-functions/v1";
+import express from "express";
+import cors from "cors";
 import { ZaneReporterService } from "../services/zane-reporter";
 import { authenticateUser, AuthenticatedRequest, requireSubscriptionTier } from "../middleware/auth";
 
@@ -42,14 +42,14 @@ app.get("/briefing", authenticateUser, requireSubscriptionTier(["pro", "champion
       }
     }
 
-    res.json({
+    return res.json({
       success: true,
       briefing
     });
 
   } catch (error: any) {
     functions.logger.error("Get briefing error:", error);
-    res.status(500).json({ error: "Failed to get daily briefing" });
+    return res.status(500).json({ error: "Failed to get daily briefing" });
   }
 });
 
@@ -73,7 +73,7 @@ app.get("/breaking-news", authenticateUser, async (req: AuthenticatedRequest, re
       ...doc.data()
     }));
 
-    res.json({
+    return res.json({
       success: true,
       news,
       count: news.length
@@ -81,7 +81,7 @@ app.get("/breaking-news", authenticateUser, async (req: AuthenticatedRequest, re
 
   } catch (error: any) {
     functions.logger.error("Get breaking news error:", error);
-    res.status(500).json({ error: "Failed to get breaking news" });
+    return res.status(500).json({ error: "Failed to get breaking news" });
   }
 });
 
@@ -100,7 +100,7 @@ app.get("/news/:newsId", authenticateUser, async (req: AuthenticatedRequest, res
       return res.status(404).json({ error: "News item not found" });
     }
 
-    res.json({
+    return res.json({
       success: true,
       news: {
         id: newsDoc.id,
@@ -110,7 +110,7 @@ app.get("/news/:newsId", authenticateUser, async (req: AuthenticatedRequest, res
 
   } catch (error: any) {
     functions.logger.error("Get news item error:", error);
-    res.status(500).json({ error: "Failed to get news item" });
+    return res.status(500).json({ error: "Failed to get news item" });
   }
 });
 
@@ -137,7 +137,7 @@ app.post("/analyze-news", async (req, res) => {
       source || "API"
     );
 
-    res.json({
+    return res.json({
       success: true,
       newsItem: {
         id: newsItem.id,
@@ -152,7 +152,7 @@ app.post("/analyze-news", async (req, res) => {
 
   } catch (error: any) {
     functions.logger.error("Analyze news error:", error);
-    res.status(500).json({ error: "Failed to analyze news" });
+    return res.status(500).json({ error: "Failed to analyze news" });
   }
 });
 
@@ -169,14 +169,14 @@ app.post("/live-update", requireSubscriptionTier(["champion"]), async (req: Auth
 
     const update = await ZaneReporterService.generateLiveGameUpdate(gameId, playData);
 
-    res.json({
+    return res.json({
       success: true,
       update
     });
 
   } catch (error: any) {
     functions.logger.error("Live update error:", error);
-    res.status(500).json({ error: "Failed to generate live update" });
+    return res.status(500).json({ error: "Failed to generate live update" });
   }
 });
 
@@ -204,7 +204,7 @@ app.get("/news/category/:category", authenticateUser, async (req: AuthenticatedR
       ...doc.data()
     }));
 
-    res.json({
+    return res.json({
       success: true,
       category,
       news,
@@ -213,7 +213,7 @@ app.get("/news/category/:category", authenticateUser, async (req: AuthenticatedR
 
   } catch (error: any) {
     functions.logger.error("Get news by category error:", error);
-    res.status(500).json({ error: "Failed to get news by category" });
+    return res.status(500).json({ error: "Failed to get news by category" });
   }
 });
 
@@ -236,7 +236,7 @@ app.get("/high-impact", authenticateUser, async (req: AuthenticatedRequest, res)
       ...doc.data()
     }));
 
-    res.json({
+    return res.json({
       success: true,
       news,
       count: news.length
@@ -244,7 +244,7 @@ app.get("/high-impact", authenticateUser, async (req: AuthenticatedRequest, res)
 
   } catch (error: any) {
     functions.logger.error("Get high-impact news error:", error);
-    res.status(500).json({ error: "Failed to get high-impact news" });
+    return res.status(500).json({ error: "Failed to get high-impact news" });
   }
 });
 
@@ -267,7 +267,7 @@ app.get("/player/:playerName/news", authenticateUser, async (req: AuthenticatedR
       ...doc.data()
     }));
 
-    res.json({
+    return res.json({
       success: true,
       player: playerName,
       news,
@@ -276,7 +276,7 @@ app.get("/player/:playerName/news", authenticateUser, async (req: AuthenticatedR
 
   } catch (error: any) {
     functions.logger.error("Get player news error:", error);
-    res.status(500).json({ error: "Failed to get player news" });
+    return res.status(500).json({ error: "Failed to get player news" });
   }
 });
 
@@ -302,7 +302,7 @@ app.get("/voice-briefing", authenticateUser, requireSubscriptionTier(["pro", "ch
       return res.status(404).json({ error: "Voice briefing not available" });
     }
 
-    res.json({
+    return res.json({
       success: true,
       voiceBriefing: briefing.voiceBriefing,
       date: briefingDate,
@@ -311,7 +311,7 @@ app.get("/voice-briefing", authenticateUser, requireSubscriptionTier(["pro", "ch
 
   } catch (error: any) {
     functions.logger.error("Get voice briefing error:", error);
-    res.status(500).json({ error: "Failed to get voice briefing" });
+    return res.status(500).json({ error: "Failed to get voice briefing" });
   }
 });
 

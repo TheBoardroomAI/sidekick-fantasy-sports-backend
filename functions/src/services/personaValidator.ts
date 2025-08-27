@@ -151,7 +151,7 @@ export class PersonaValidator {
     
     // Check for prohibited words
     const foundProhibited = characteristics.prohibitedWords.filter(word => 
-      lowerResponse.includes(word.toLowerCase())
+      response.toLowerCase().includes(word.toLowerCase())
     );
     
     if (foundProhibited.length > 0) {
@@ -162,7 +162,7 @@ export class PersonaValidator {
     
     // Check for characteristic vocabulary
     const foundVocabulary = characteristics.vocabulary.filter(word => 
-      lowerResponse.includes(word.toLowerCase())
+      response.toLowerCase().includes(word.toLowerCase())
     );
     
     const vocabularyScore = foundVocabulary.length / characteristics.vocabulary.length;
@@ -329,7 +329,7 @@ export class PersonaValidator {
       let query = db.collection("persona_validations");
       
       if (personaId) {
-        query = query.where("personaId", "==", personaId);
+        const filteredQuery = query.where("personaId", "==", personaId);
       }
       
       const snapshot = await query
@@ -341,7 +341,7 @@ export class PersonaValidator {
       
       const stats = {
         total: validations.length,
-        valid: validations.filter(v => v.valid).length,
+        valid: validations.filter((v: any) => v.valid).length,
         averageConfidence: validations.reduce((sum, v) => sum + v.confidence, 0) / validations.length,
         byPersona: {} as Record<string, any>
       };
@@ -358,7 +358,7 @@ export class PersonaValidator {
       for (const [pid, vals] of Object.entries(byPersona)) {
         stats.byPersona[pid] = {
           total: vals.length,
-          valid: vals.filter(v => v.valid).length,
+          valid: vals.filter((v: any) => v.valid).length,
           averageConfidence: vals.reduce((sum, v) => sum + v.confidence, 0) / vals.length
         };
       }

@@ -1,5 +1,5 @@
 import axios from "axios";
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import { db, storage, COLLECTIONS } from "../config/firebase";
 
 // ElevenLabs API Configuration
@@ -140,7 +140,7 @@ export class VoiceSystemService {
       
       // Add audio samples
       audioSamples.forEach((sample, index) => {
-        formData.append("files", new Blob([sample]), `sample_${index}.mp3`);
+        formData.append("files", new Blob([Buffer.from(sample)]), `sample_${index}.mp3`);
       });
 
       const response = await axios.post(

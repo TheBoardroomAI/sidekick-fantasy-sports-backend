@@ -1,5 +1,5 @@
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+import { Response } from "express";
+import * as functions from "firebase-functions/v1";
 
 interface RateLimitConfig {
   windowMs: number;
@@ -28,9 +28,8 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 export function createRateLimiter(config: RateLimitConfig) {
-  return async (req: functions.https.Request, res: functions.Response, next?: () => void): Promise<void> => {
+  return async (req: functions.https.Request, res: Response, next?: () => void): Promise<void> => {
     const now = Date.now();
-    const windowStart = now - config.windowMs;
     
     // Generate key for rate limiting
     let key: string;
@@ -127,10 +126,10 @@ export const rateLimiters = {
 
 // Wrapper function to apply rate limiting to Firebase Functions
 export function withRateLimit(
-  rateLimiter: (req: functions.https.Request, res: functions.Response, next?: () => void) => Promise<void>,
-  handler: (req: functions.https.Request, res: functions.Response) => Promise<void> | void
+  rateLimiter: (req: functions.https.Request, res: Response, next?: () => void) => Promise<void>,
+  handler: (req: functions.https.Request, res: Response) => Promise<void> | void
 ) {
-  return async (req: functions.https.Request, res: functions.Response) => {
+  return async (req: functions.https.Request, res: Response) => {
     try {
       await new Promise<void>((resolve, reject) => {
         rateLimiter(req, res, () => resolve()).catch(reject);

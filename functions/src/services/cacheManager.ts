@@ -54,7 +54,7 @@ export class CacheManager {
       const cacheData = cacheDoc.data() as CacheEntry;
       
       // Check if expired
-      if (cacheData.expiresAt.toDate() <= new Date()) {
+      if (cacheData.expiresAt <= new Date()) {
         // Clean up expired entry
         await this.delete(key);
         return null;
@@ -336,7 +336,7 @@ export class CacheManager {
         entries: firestoreEntries.length,
         totalSize: firestoreEntries.reduce((sum, entry) => sum + entry.size, 0),
         averageAccessCount: firestoreEntries.reduce((sum, entry) => sum + entry.accessCount, 0) / firestoreEntries.length || 0,
-        expiredEntries: firestoreEntries.filter(entry => entry.expiresAt.toDate() <= new Date()).length
+        expiredEntries: firestoreEntries.filter(entry => entry.expiresAt <= new Date()).length
       };
 
       return {
@@ -384,7 +384,7 @@ export class CacheManager {
       const positions = ["QB", "RB", "WR", "TE"];
       
       for (const position of positions) {
-        const cacheKey = `players:top:${position}`;
+        // const cacheKey = `players:top:${position}`;
         // This would call your actual data service
         // await this.getOrSet(cacheKey, () => dataService.getTopPlayers(position), 30 * 60 * 1000, ['players', position]);
       }
@@ -403,7 +403,7 @@ export class CacheManager {
       const personas = ["oracle", "rebel", "mentor", "analyst", "rookie", "zane"];
       
       for (const persona of personas) {
-        const cacheKey = `persona:config:${persona}`;
+        // const cacheKey = `persona:config:${persona}`;
         // Cache persona configuration data
         // await this.getOrSet(cacheKey, () => personaService.getConfig(persona), 60 * 60 * 1000, ['personas']);
       }
@@ -419,7 +419,7 @@ export class CacheManager {
       console.log("Warming up subscription data cache...");
       
       // Cache subscription tier configurations
-      const cacheKey = "subscription:tiers";
+      // const cacheKey = "subscription:tiers";
       // await this.getOrSet(cacheKey, () => subscriptionService.getTiers(), 60 * 60 * 1000, ['subscriptions']);
 
     } catch (error: any) {

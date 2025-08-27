@@ -1,6 +1,6 @@
-import * as functions from "firebase-functions";
-import * as express from "express";
-import * as cors from "cors";
+import * as functions from "firebase-functions/v1";
+import express from "express";
+import cors from "cors";
 import { RealtimeSystemService } from "../services/realtime-system";
 import { authenticateUser, AuthenticatedRequest, requireActiveSubscription } from "../middleware/auth";
 
@@ -25,14 +25,14 @@ app.post("/draft-room", authenticateUser, requireActiveSubscription, async (req:
       settings || {}
     );
 
-    res.json({
+    return res.json({
       success: true,
       draftRoom
     });
 
   } catch (error: any) {
     functions.logger.error("Create draft room error:", error);
-    res.status(500).json({ error: "Failed to create draft room" });
+    return res.status(500).json({ error: "Failed to create draft room" });
   }
 });
 
@@ -45,14 +45,14 @@ app.post("/draft-room/:roomId/join", authenticateUser, requireActiveSubscription
 
     const result = await RealtimeSystemService.joinDraftRoom(roomId, req.user!.uid);
 
-    res.json({
+    return res.json({
       success: true,
       result
     });
 
   } catch (error: any) {
     functions.logger.error("Join draft room error:", error);
-    res.status(500).json({ error: "Failed to join draft room" });
+    return res.status(500).json({ error: "Failed to join draft room" });
   }
 });
 
@@ -65,14 +65,14 @@ app.post("/draft-room/:roomId/start", authenticateUser, requireActiveSubscriptio
 
     const result = await RealtimeSystemService.startDraft(roomId, req.user!.uid);
 
-    res.json({
+    return res.json({
       success: true,
       result
     });
 
   } catch (error: any) {
     functions.logger.error("Start draft error:", error);
-    res.status(500).json({ error: "Failed to start draft" });
+    return res.status(500).json({ error: "Failed to start draft" });
   }
 });
 
@@ -95,14 +95,14 @@ app.post("/draft-room/:roomId/pick", authenticateUser, requireActiveSubscription
       playerName
     );
 
-    res.json({
+    return res.json({
       success: true,
       result
     });
 
   } catch (error: any) {
     functions.logger.error("Make draft pick error:", error);
-    res.status(500).json({ error: "Failed to make draft pick" });
+    return res.status(500).json({ error: "Failed to make draft pick" });
   }
 });
 
@@ -125,14 +125,14 @@ app.post("/draft-room/:roomId/message", authenticateUser, requireActiveSubscript
       messageType
     );
 
-    res.json({
+    return res.json({
       success: true,
       message: "Message sent"
     });
 
   } catch (error: any) {
     functions.logger.error("Send draft message error:", error);
-    res.status(500).json({ error: "Failed to send message" });
+    return res.status(500).json({ error: "Failed to send message" });
   }
 });
 
@@ -158,7 +158,7 @@ app.get("/draft-room/:roomId", authenticateUser, async (req: AuthenticatedReques
       return res.status(403).json({ error: "Access denied" });
     }
 
-    res.json({
+    return res.json({
       success: true,
       draftRoom: {
         roomId,
@@ -168,7 +168,7 @@ app.get("/draft-room/:roomId", authenticateUser, async (req: AuthenticatedReques
 
   } catch (error: any) {
     functions.logger.error("Get draft room error:", error);
-    res.status(500).json({ error: "Failed to get draft room" });
+    return res.status(500).json({ error: "Failed to get draft room" });
   }
 });
 
@@ -207,14 +207,14 @@ app.get("/draft-room/:roomId/messages", authenticateUser, async (req: Authentica
       ...doc.data()
     })).reverse(); // Reverse to get chronological order
 
-    res.json({
+    return res.json({
       success: true,
       messages
     });
 
   } catch (error: any) {
     functions.logger.error("Get draft messages error:", error);
-    res.status(500).json({ error: "Failed to get messages" });
+    return res.status(500).json({ error: "Failed to get messages" });
   }
 });
 
@@ -241,14 +241,14 @@ app.get("/draft-rooms", authenticateUser, async (req: AuthenticatedRequest, res)
       ...doc.data()
     }));
 
-    res.json({
+    return res.json({
       success: true,
       draftRooms
     });
 
   } catch (error: any) {
     functions.logger.error("Get draft rooms error:", error);
-    res.status(500).json({ error: "Failed to get draft rooms" });
+    return res.status(500).json({ error: "Failed to get draft rooms" });
   }
 });
 
@@ -294,14 +294,14 @@ app.post("/draft-room/:roomId/leave", authenticateUser, async (req: Authenticate
       }
     );
 
-    res.json({
+    return res.json({
       success: true,
       message: "Left draft room"
     });
 
   } catch (error: any) {
     functions.logger.error("Leave draft room error:", error);
-    res.status(500).json({ error: "Failed to leave draft room" });
+    return res.status(500).json({ error: "Failed to leave draft room" });
   }
 });
 
@@ -337,7 +337,7 @@ app.post("/pusher/auth", authenticateUser, async (req: AuthenticatedRequest, res
     // Generate Pusher auth signature (simplified)
     const auth = `${socket_id}:${channel_name}`;
     
-    res.json({
+    return res.json({
       auth: auth,
       channel_data: JSON.stringify({
         user_id: req.user!.uid,
@@ -349,7 +349,7 @@ app.post("/pusher/auth", authenticateUser, async (req: AuthenticatedRequest, res
 
   } catch (error: any) {
     functions.logger.error("Pusher auth error:", error);
-    res.status(500).json({ error: "Failed to authenticate" });
+    return res.status(500).json({ error: "Failed to authenticate" });
   }
 });
 
@@ -360,14 +360,14 @@ app.get("/health", async (req, res) => {
   try {
     const health = await RealtimeSystemService.getRealtimeSystemHealth();
     
-    res.json({
+    return res.json({
       success: true,
       health
     });
 
   } catch (error: any) {
     functions.logger.error("Real-time health check error:", error);
-    res.status(500).json({ error: "Health check failed" });
+    return res.status(500).json({ error: "Health check failed" });
   }
 });
 

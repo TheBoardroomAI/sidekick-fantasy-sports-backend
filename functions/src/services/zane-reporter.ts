@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import { db } from "../config/firebase";
 import { DataIntegrationService } from "./data-integration";
 import { VoiceSystemService } from "./voice-system";

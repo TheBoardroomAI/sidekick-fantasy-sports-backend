@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 
 // Initialize Stripe with secret key from Firebase Secret Manager
 const stripeSecretKey = functions.config().stripe?.secret_key || process.env.STRIPE_SECRET_KEY;

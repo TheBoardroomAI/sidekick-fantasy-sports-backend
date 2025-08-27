@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import { SubscriptionService } from "../services/subscription";
 
 // Stripe webhook handler with proper signature validation
@@ -14,7 +14,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
   }
   
   if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
@@ -24,7 +24,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
     
     if (!signature) {
       console.error("Missing Stripe signature header");
-      res.status(400).json({ error: "Missing signature header" });
+      return res.status(400).json({ error: "Missing signature header" });
       return;
     }
 
@@ -33,7 +33,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
     
     if (!payload) {
       console.error("Missing request payload");
-      res.status(400).json({ error: "Missing payload" });
+      return res.status(400).json({ error: "Missing payload" });
       return;
     }
 
@@ -43,7 +43,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
       event = SubscriptionService.validateWebhookSignature(payload, signature as string);
     } catch (error: any) {
       console.error("Webhook signature verification failed:", error?.message || "Unknown error");
-      res.status(400).json({ 
+      return res.status(400).json({ 
         error: "Webhook signature verification failed",
         details: error?.message || "Unknown error" 
       });
@@ -58,7 +58,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
       await SubscriptionService.processWebhookEvent(event);
       
       // Respond to Stripe that we received the event successfully
-      res.json({ 
+      return res.json({ 
         received: true,
         eventId: event.id,
         eventType: event.type
@@ -68,7 +68,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
       console.error(`Error processing webhook event ${event.type}:`, processingError);
       
       // Return 500 so Stripe will retry the webhook
-      res.status(500).json({
+      return res.status(500).json({
         error: "Event processing failed",
         eventId: event.id,
         eventType: event.type,
@@ -78,7 +78,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
 
   } catch (error: any) {
     console.error("Webhook handler error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Internal server error",
       details: error?.message || "Unknown error"
     });
@@ -98,7 +98,7 @@ export const createCheckoutSession = functions.https.onRequest(async (req, res) 
   }
   
   if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
@@ -106,7 +106,7 @@ export const createCheckoutSession = functions.https.onRequest(async (req, res) 
     // Verify authentication
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
-      res.status(401).json({ error: "Authentication required" });
+      return res.status(401).json({ error: "Authentication required" });
       return;
     }
 
@@ -118,28 +118,28 @@ export const createCheckoutSession = functions.https.onRequest(async (req, res) 
     const { userId, tier } = req.body;
     
     if (!userId || !tier) {
-      res.status(400).json({ error: "Missing userId or tier" });
+      return res.status(400).json({ error: "Missing userId or tier" });
       return;
     }
 
     // Validate tier
     const validTiers = ["rookie", "pro", "champion"];
     if (!validTiers.includes(tier)) {
-      res.status(400).json({ error: "Invalid subscription tier" });
+      return res.status(400).json({ error: "Invalid subscription tier" });
       return;
     }
 
     // Create checkout session
     const checkoutUrl = await SubscriptionService.createCheckoutSession(userId, tier);
     
-    res.json({
+    return res.json({
       success: true,
       checkoutUrl
     });
 
   } catch (error: any) {
     console.error("Create checkout session error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to create checkout session",
       details: error?.message || "Unknown error"
     });
@@ -159,7 +159,7 @@ export const getSubscriptionStatus = functions.https.onRequest(async (req, res) 
   }
   
   if (req.method !== "GET") {
-    res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
@@ -167,7 +167,7 @@ export const getSubscriptionStatus = functions.https.onRequest(async (req, res) 
     // Verify authentication
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
-      res.status(401).json({ error: "Authentication required" });
+      return res.status(401).json({ error: "Authentication required" });
       return;
     }
 
@@ -175,21 +175,21 @@ export const getSubscriptionStatus = functions.https.onRequest(async (req, res) 
     const userId = req.query.userId as string;
     
     if (!userId) {
-      res.status(400).json({ error: "Missing userId" });
+      return res.status(400).json({ error: "Missing userId" });
       return;
     }
 
     // Get subscription status
     const status = await SubscriptionService.getSubscriptionStatus(userId);
     
-    res.json({
+    return res.json({
       success: true,
       subscription: status
     });
 
   } catch (error: any) {
     console.error("Get subscription status error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to get subscription status",
       details: error?.message || "Unknown error"
     });
@@ -207,7 +207,7 @@ export const webhookRoutes = functions.https.onRequest(async (req, res) => {
   } else if (path === "/status") {
     return getSubscriptionStatus(req, res);
   } else {
-    res.status(404).json({ error: "Webhook endpoint not found" });
+    return res.status(404).json({ error: "Webhook endpoint not found" });
   }
 });
 

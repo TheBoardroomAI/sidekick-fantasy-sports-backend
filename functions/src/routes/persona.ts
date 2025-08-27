@@ -1,6 +1,6 @@
-import * as functions from "firebase-functions";
-import * as express from "express";
-import * as cors from "cors";
+import * as functions from "firebase-functions/v1";
+import express from "express";
+import cors from "cors";
 import { PersonaEngineService, PersonaType } from "../services/persona-engine";
 import { authenticateUser, AuthenticatedRequest, requireActiveSubscription } from "../middleware/auth";
 
@@ -36,7 +36,7 @@ app.post("/chat/:persona", authenticateUser, requireActiveSubscription, async (r
       }
     );
 
-    res.json({
+    return res.json({
       success: true,
       response: {
         text: response.textResponse,
@@ -50,7 +50,7 @@ app.post("/chat/:persona", authenticateUser, requireActiveSubscription, async (r
 
   } catch (error: any) {
     functions.logger.error("Persona chat error:", error);
-    res.status(500).json({ error: "Failed to process chat message" });
+    return res.status(500).json({ error: "Failed to process chat message" });
   }
 });
 
@@ -76,7 +76,7 @@ app.get("/conversation/:conversationId", authenticateUser, async (req: Authentic
 
     const conversation = conversationDoc.data();
     
-    res.json({
+    return res.json({
       success: true,
       conversation: {
         id: conversationId,
@@ -89,7 +89,7 @@ app.get("/conversation/:conversationId", authenticateUser, async (req: Authentic
 
   } catch (error: any) {
     functions.logger.error("Get conversation error:", error);
-    res.status(500).json({ error: "Failed to get conversation" });
+    return res.status(500).json({ error: "Failed to get conversation" });
   }
 });
 
@@ -120,14 +120,14 @@ app.get("/conversations", authenticateUser, async (req: AuthenticatedRequest, re
       createdAt: doc.data().createdAt
     }));
 
-    res.json({
+    return res.json({
       success: true,
       conversations
     });
 
   } catch (error: any) {
     functions.logger.error("Get conversations error:", error);
-    res.status(500).json({ error: "Failed to get conversations" });
+    return res.status(500).json({ error: "Failed to get conversations" });
   }
 });
 
@@ -172,7 +172,7 @@ app.get("/personas", authenticateUser, async (req: AuthenticatedRequest, res) =>
       });
     });
 
-    res.json({
+    return res.json({
       success: true,
       subscriptionTier,
       personas
@@ -180,7 +180,7 @@ app.get("/personas", authenticateUser, async (req: AuthenticatedRequest, res) =>
 
   } catch (error: any) {
     functions.logger.error("Get personas error:", error);
-    res.status(500).json({ error: "Failed to get personas" });
+    return res.status(500).json({ error: "Failed to get personas" });
   }
 });
 
@@ -200,14 +200,14 @@ app.delete("/conversation/:conversationId", authenticateUser, async (req: Authen
       .doc(conversationId)
       .delete();
 
-    res.json({
+    return res.json({
       success: true,
       message: "Conversation deleted"
     });
 
   } catch (error: any) {
     functions.logger.error("Delete conversation error:", error);
-    res.status(500).json({ error: "Failed to delete conversation" });
+    return res.status(500).json({ error: "Failed to delete conversation" });
   }
 });
 
@@ -245,14 +245,14 @@ app.get("/stats", authenticateUser, async (req: AuthenticatedRequest, res) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       stats
     });
 
   } catch (error: any) {
     functions.logger.error("Get stats error:", error);
-    res.status(500).json({ error: "Failed to get statistics" });
+    return res.status(500).json({ error: "Failed to get statistics" });
   }
 });
 
