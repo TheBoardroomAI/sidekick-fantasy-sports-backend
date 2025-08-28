@@ -17,7 +17,7 @@ export interface NewsItem {
   source: string;
   timestamp: Date;
   zaneAnalysis?: string;
-  voiceReport?: string;
+  // voiceReport removed - Zane is text-only
 }
 
 export interface DailyBriefing {
@@ -32,7 +32,7 @@ export interface DailyBriefing {
   weatherWatch: Array<{ game: string; conditions: string; impact: string }>;
   injuryReport: Array<{ player: string; status: string; timeline: string; impact: number }>;
   zaneCommentary: string;
-  voiceBriefing?: string;
+  // voiceBriefing removed - Zane is text-only
   createdAt: Date;
 }
 
@@ -96,14 +96,8 @@ export class ZaneReporterService {
         zaneAnalysis
       };
 
-      // Generate voice report for high-impact news
-      if (fantasyImpact >= 7) {
-        const voiceResult = await VoiceSystemService.generateSpeech(
-          `Breaking news alert! ${headline}. ${zaneAnalysis}`,
-          "ZANE"
-        );
-        newsItem.voiceReport = voiceResult.audioData;
-      }
+      // Voice functionality removed for Zane - text-only mode
+      // newsItem.voiceReport is intentionally omitted
 
       // Save to database
       await db.collection("breaking_news").doc(newsItem.id).set(newsItem);
@@ -193,10 +187,8 @@ export class ZaneReporterService {
         createdAt: new Date()
       };
 
-      // Generate voice briefing
-      const fullBriefingText = this.compileBriefingText(briefing);
-      const voiceResult = await VoiceSystemService.generateSpeech(fullBriefingText, "ZANE");
-      briefing.voiceBriefing = voiceResult.audioData;
+      // Voice functionality removed for Zane - text-only mode
+      // briefing.voiceBriefing is intentionally omitted
 
       // Save briefing
       await db.collection("daily_briefings").doc(briefing.id).set(briefing);
@@ -226,7 +218,7 @@ export class ZaneReporterService {
   static async generateLiveGameUpdate(
     gameId: string,
     playData: any
-  ): Promise<{ update: string; voiceUpdate?: string }> {
+  ): Promise<{ update: string }> {
     try {
       // Analyze play for fantasy relevance
       const fantasyRelevance = this.analyzePlayFantasyRelevance(playData);
@@ -255,12 +247,8 @@ export class ZaneReporterService {
         { play_data: playData, fantasy_relevance: fantasyRelevance }
       );
 
-      let voiceUpdate;
-      if (fantasyRelevance.score >= 8) {
-        // Generate voice for high-impact plays
-        const voiceResult = await VoiceSystemService.generateSpeech(liveUpdate, "ZANE");
-        voiceUpdate = voiceResult.audioData;
-      }
+      // Voice functionality removed for Zane - text-only mode
+      // voiceUpdate generation is intentionally omitted
 
       // Broadcast live update
       await RealtimeSystemService.triggerEvent(
@@ -273,7 +261,7 @@ export class ZaneReporterService {
         }
       );
 
-      return { update: liveUpdate, voiceUpdate };
+      return { update: liveUpdate };
 
     } catch (error: any) {
       functions.logger.error("Live game update error:", error);
