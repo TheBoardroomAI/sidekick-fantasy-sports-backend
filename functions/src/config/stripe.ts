@@ -13,7 +13,7 @@ export function getStripeClient(): Stripe {
   }
 
   return new Stripe(secretValue, {
-    apiVersion: "2025-07-30.basil",
+    apiVersion: "2025-08-27.basil",
   });
 }
 
