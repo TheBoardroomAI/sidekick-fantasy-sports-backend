@@ -17,6 +17,7 @@ export interface User {
     notifications: boolean;
     voiceEnabled: boolean;
     selectedPersona?: string;
+    preferredName?: string; // NEW: User's preferred name for personalization
   };
   usage: {
     conversationsThisMonth: number;
@@ -29,6 +30,7 @@ export interface CreateUserData {
   displayName?: string;
   subscriptionTier: SubscriptionTier;
   favoriteTeams?: string[];
+  preferredName?: string; // NEW: Optional preferred name during user creation
 }
 
 export interface UpdateUserData {
@@ -39,5 +41,17 @@ export interface UpdateUserData {
   subscriptionStatus?: User["subscriptionStatus"];
   stripeCustomerId?: string;
   subscriptionId?: string;
+}
+
+// NEW: Interface for preferred name operations
+export interface PreferredNameUpdateData {
+  preferredName: string;
+  updatedAt: Date;
+}
+
+export interface PreferredNameValidation {
+  isValid: boolean;
+  errors: string[];
+  sanitizedName?: string;
 }
 

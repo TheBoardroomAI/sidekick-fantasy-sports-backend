@@ -35,6 +35,18 @@ export interface UserSidekickSelection {
     realtimeUpdates: boolean;
   };
   subscriptionTier: 'free' | 'premium' | 'pro';
+  preferredName?: string; // NEW: User's preferred name for this sidekick relationship
+}
+
+// NEW: Interface for sidekick selection with preferred name
+export interface SidekickSelectionWithName {
+  sidekickId: string;
+  preferredName: string;
+  preferences?: {
+    notifications: boolean;
+    voiceEnabled: boolean;
+    realtimeUpdates: boolean;
+  };
 }
 
 export interface SidekickSelectionContext {
@@ -106,309 +118,186 @@ export class SidekickSelectionManager {
       const scoredSidekicks = availableSidekicks.map(sidekick => {
         let score = 0;
 
-        // Match sports preferences
-        const sportMatches = sidekick.sports.filter(sport => 
-          context.preferredSports.includes(sport)
-        ).length;
-        score += sportMatches * 10;
+        // Score based on preferred sports
+        if (context.preferredSports?.length > 0) {
+          const sportsMatch = sidekick.sports.filter(sport => 
+            context.preferredSports.includes(sport)
+          ).length;
+          score += sportsMatch * 10;
+        }
 
-        // Prefer sidekicks with features user has used
-        if (context.usageHistory.some(h => h.feature === 'voice') && sidekick.features.voice) {
+        // Score based on subscription tier match
+        if (sidekick.pricing.tier === context.currentSubscription?.tier) {
           score += 5;
         }
-        if (context.usageHistory.some(h => h.feature === 'realtime') && sidekick.features.realtime) {
-          score += 5;
+
+        // Boost active features for premium users
+        if (context.currentSubscription?.tier !== 'free') {
+          if (sidekick.features.voice) score += 3;
+          if (sidekick.features.realtime) score += 3;
         }
 
         return { sidekick, score };
       });
 
-      // Sort by score and return top 3
-      scoredSidekicks.sort((a, b) => b.score - a.score);
-
-      logger.info(`Generated ${scoredSidekicks.length} recommendations for user ${userId}`);
-      return scoredSidekicks.slice(0, 3).map(item => item.sidekick);
+      // Return top 5 recommendations
+      return scoredSidekicks
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5)
+        .map(item => item.sidekick);
 
     } catch (error) {
       logger.error('Error getting recommended sidekicks:', error);
-      throw new Error('Failed to generate sidekick recommendations');
+      throw new Error('Failed to generate recommendations');
     }
   }
 
   /**
-   * Select a sidekick for a user
+   * NEW: Select a sidekick with preferred name
    */
-  async selectSidekick(
+  async selectSidekickWithName(
     userId: string,
-    sidekickId: string,
-    preferences: UserSidekickSelection['preferences']
+    selectionData: SidekickSelectionWithName,
+    subscriptionTier: 'free' | 'premium' | 'pro' = 'free'
   ): Promise<UserSidekickSelection> {
     try {
-      // Verify sidekick exists and is available
-      const sidekickDoc = await this.db.collection('sidekicks').doc(sidekickId).get();
+      // Validate sidekick exists and is available to user
+      const availableSidekicks = await this.getAvailableSidekicks(userId, subscriptionTier);
+      const selectedSidekick = availableSidekicks.find(s => s.id === selectionData.sidekickId);
 
-      if (!sidekickDoc.exists) {
-        throw new Error('Sidekick not found');
+      if (!selectedSidekick) {
+        throw new Error('Sidekick not found or not available for your subscription tier');
       }
 
-      const sidekick = sidekickDoc.data() as SidekickPersona;
-      if (!sidekick.isActive) {
-        throw new Error('Sidekick is not currently available');
-      }
-
-      // Get user's subscription to verify access
-      const userDoc = await this.db.collection('users').doc(userId).get();
-      const userData = userDoc.data();
-
-      if (!userData) {
-        throw new Error('User not found');
-      }
-
-      const userTier = userData.subscription?.tier || 'free';
-
-      // Check if user has access to this sidekick
-      if (!this.hasAccessToSidekick(sidekick, userTier)) {
-        throw new Error('Insufficient subscription tier for this sidekick');
-      }
-
-      // Deactivate current selection if exists
-      await this.deactivateCurrentSelection(userId);
-
-      // Create new selection
+      // Create selection with preferred name
       const selection: UserSidekickSelection = {
         userId,
-        selectedSidekickId: sidekickId,
+        selectedSidekickId: selectionData.sidekickId,
         selectionDate: admin.firestore.Timestamp.now(),
         isActive: true,
-        preferences,
-        subscriptionTier: userTier
+        preferences: selectionData.preferences || {
+          notifications: true,
+          voiceEnabled: false,
+          realtimeUpdates: false,
+        },
+        subscriptionTier,
+        preferredName: selectionData.preferredName // Store the preferred name
       };
 
-      const selectionRef = this.db.collection('userSidekickSelections').doc();
-      await selectionRef.set(selection);
+      // Store in Firestore
+      const selectionRef = this.db.collection('userSidekickSelections').doc(userId);
+      await selectionRef.set(selection, { merge: true });
 
-      // Update user document with current sidekick
-      await this.db.collection('users').doc(userId).update({
-        currentSidekickId: sidekickId,
-        lastSidekickSelection: admin.firestore.Timestamp.now()
+      // Update user preferences with selected persona and preferred name
+      const userRef = this.db.collection('users').doc(userId);
+      await userRef.update({
+        'preferences.selectedPersona': selectionData.sidekickId,
+        'preferences.preferredName': selectionData.preferredName,
+        updatedAt: admin.firestore.Timestamp.now()
       });
 
-      logger.info(`User ${userId} selected sidekick ${sidekickId}`);
+      logger.info(`User ${userId} selected sidekick ${selectionData.sidekickId} with preferred name: ${selectionData.preferredName}`);
       return selection;
 
     } catch (error) {
-      logger.error('Error selecting sidekick:', error);
+      logger.error('Error selecting sidekick with preferred name:', error);
       throw error;
     }
   }
 
   /**
-   * Get user's current sidekick selection
+   * NEW: Update preferred name for existing sidekick selection
+   */
+  async updatePreferredName(
+    userId: string,
+    preferredName: string
+  ): Promise<void> {
+    try {
+      const batch = this.db.batch();
+
+      // Update user preferences
+      const userRef = this.db.collection('users').doc(userId);
+      batch.update(userRef, {
+        'preferences.preferredName': preferredName,
+        updatedAt: admin.firestore.Timestamp.now()
+      });
+
+      // Update sidekick selection
+      const selectionRef = this.db.collection('userSidekickSelections').doc(userId);
+      batch.update(selectionRef, {
+        preferredName: preferredName,
+        updatedAt: admin.firestore.Timestamp.now()
+      });
+
+      await batch.commit();
+
+      logger.info(`Updated preferred name to "${preferredName}" for user ${userId}`);
+
+    } catch (error) {
+      logger.error('Error updating preferred name:', error);
+      throw new Error('Failed to update preferred name');
+    }
+  }
+
+  /**
+   * NEW: Get user's current sidekick selection with preferred name
    */
   async getCurrentSelection(userId: string): Promise<UserSidekickSelection | null> {
     try {
-      const snapshot = await this.db
+      const selectionDoc = await this.db
         .collection('userSidekickSelections')
-        .where('userId', '==', userId)
-        .where('isActive', '==', true)
-        .orderBy('selectionDate', 'desc')
-        .limit(1)
+        .doc(userId)
         .get();
 
-      if (snapshot.empty) {
+      if (!selectionDoc.exists) {
         return null;
       }
 
-      const doc = snapshot.docs[0];
-      return {
-        ...doc.data(),
-        id: doc.id
-      } as UserSidekickSelection;
+      return selectionDoc.data() as UserSidekickSelection;
 
     } catch (error) {
       logger.error('Error getting current selection:', error);
-      throw new Error('Failed to retrieve current sidekick selection');
+      throw new Error('Failed to retrieve current selection');
     }
   }
 
   /**
-   * Update sidekick preferences
+   * Get user's sidekick selection status
    */
-  async updatePreferences(
-    userId: string,
-    preferences: Partial<UserSidekickSelection['preferences']>
-  ): Promise<void> {
+  async getUserSelectionStatus(userId: string): Promise<{
+    hasSelection: boolean;
+    currentSidekick?: SidekickPersona;
+    selectionData?: UserSidekickSelection;
+  }> {
     try {
-      const currentSelection = await this.getCurrentSelection(userId);
+      const selection = await this.getCurrentSelection(userId);
 
-      if (!currentSelection) {
-        throw new Error('No active sidekick selection found');
+      if (!selection || !selection.isActive) {
+        return { hasSelection: false };
       }
 
-      await this.db
-        .collection('userSidekickSelections')
-        .where('userId', '==', userId)
-        .where('isActive', '==', true)
-        .get()
-        .then(snapshot => {
-          const batch = this.db.batch();
-          snapshot.forEach(doc => {
-            batch.update(doc.ref, {
-              'preferences': { ...currentSelection.preferences, ...preferences }
-            });
-          });
-          return batch.commit();
-        });
-
-      logger.info(`Updated preferences for user ${userId}`);
-
-    } catch (error) {
-      logger.error('Error updating preferences:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get sidekick selection history for a user
-   */
-  async getSelectionHistory(userId: string, limit: number = 10): Promise<UserSidekickSelection[]> {
-    try {
-      const snapshot = await this.db
-        .collection('userSidekickSelections')
-        .where('userId', '==', userId)
-        .orderBy('selectionDate', 'desc')
-        .limit(limit)
+      // Get sidekick details
+      const sidekickDoc = await this.db
+        .collection('sidekicks')
+        .doc(selection.selectedSidekickId)
         .get();
 
-      const history: UserSidekickSelection[] = [];
-
-      snapshot.forEach(doc => {
-        history.push({
-          ...doc.data(),
-          id: doc.id
-        } as UserSidekickSelection);
-      });
-
-      return history;
-
-    } catch (error) {
-      logger.error('Error getting selection history:', error);
-      throw new Error('Failed to retrieve sidekick selection history');
-    }
-  }
-
-  /**
-   * Deactivate current sidekick selection
-   */
-  private async deactivateCurrentSelection(userId: string): Promise<void> {
-    const snapshot = await this.db
-      .collection('userSidekickSelections')
-      .where('userId', '==', userId)
-      .where('isActive', '==', true)
-      .get();
-
-    const batch = this.db.batch();
-
-    snapshot.forEach(doc => {
-      batch.update(doc.ref, { isActive: false });
-    });
-
-    await batch.commit();
-  }
-
-  /**
-   * Check if user has access to a sidekick based on subscription tier
-   */
-  private hasAccessToSidekick(sidekick: SidekickPersona, userTier: string): boolean {
-    if (sidekick.pricing.tier === 'free') return true;
-    if (sidekick.pricing.tier === 'premium') return ['premium', 'pro'].includes(userTier);
-    if (sidekick.pricing.tier === 'pro') return userTier === 'pro';
-    return false;
-  }
-
-  /**
-   * Initialize default sidekicks (for setup)
-   */
-  async initializeDefaultSidekicks(): Promise<void> {
-    try {
-      const defaultSidekicks: Partial<SidekickPersona>[] = [
-        {
-          name: 'Alex Analytics',
-          description: 'Your data-driven fantasy sports analyst specializing in statistical insights and trend analysis.',
-          expertise: ['Statistics', 'Trend Analysis', 'Player Performance', 'Matchup Analysis'],
-          tone: 'analytical',
-          sports: ['NFL', 'NBA', 'MLB', 'NHL'],
-          isActive: true,
-          features: {
-            voice: true,
-            realtime: true,
-            analysis: true,
-            recommendations: true
-          },
-          pricing: {
-            tier: 'free',
-            monthlyPrice: 0
-          }
-        },
-        {
-          name: 'Coach Mike',
-          description: 'A motivational fantasy coach who helps you stay positive and make confident decisions.',
-          expertise: ['Team Strategy', 'Motivation', 'Decision Making', 'Risk Management'],
-          tone: 'motivational',
-          sports: ['NFL', 'NBA', 'MLB'],
-          isActive: true,
-          features: {
-            voice: true,
-            realtime: false,
-            analysis: true,
-            recommendations: true
-          },
-          pricing: {
-            tier: 'premium',
-            monthlyPrice: 9.99
-          }
-        },
-        {
-          name: 'Sarah Pro',
-          description: 'Elite fantasy sports strategist with advanced analytics and real-time insights.',
-          expertise: ['Advanced Analytics', 'Real-time Updates', 'Multi-sport Strategy', 'Portfolio Management'],
-          tone: 'professional',
-          sports: ['NFL', 'NBA', 'MLB', 'NHL', 'Soccer'],
-          isActive: true,
-          features: {
-            voice: true,
-            realtime: true,
-            analysis: true,
-            recommendations: true
-          },
-          pricing: {
-            tier: 'pro',
-            monthlyPrice: 19.99
-          }
-        }
-      ];
-
-      const batch = this.db.batch();
-      const timestamp = admin.firestore.Timestamp.now();
-
-      for (const sidekick of defaultSidekicks) {
-        const ref = this.db.collection('sidekicks').doc();
-        batch.set(ref, {
-          ...sidekick,
-          id: ref.id,
-          createdAt: timestamp,
-          updatedAt: timestamp
-        });
+      if (!sidekickDoc.exists) {
+        return { hasSelection: false };
       }
 
-      await batch.commit();
-      logger.info('Default sidekicks initialized successfully');
+      return {
+        hasSelection: true,
+        currentSidekick: { id: sidekickDoc.id, ...sidekickDoc.data() } as SidekickPersona,
+        selectionData: selection
+      };
 
     } catch (error) {
-      logger.error('Error initializing default sidekicks:', error);
-      throw error;
+      logger.error('Error getting user selection status:', error);
+      throw new Error('Failed to get selection status');
     }
   }
 }
 
+// Export singleton instance
 export const sidekickSelectionManager = new SidekickSelectionManager();

@@ -1,5 +1,5 @@
 /**
- * Frontend SDK for Sidekick Selection System
+ * Frontend SDK for Sidekick Selection System with PreferredName Support
  * @file src/sdk/sidekick-client.ts
  */
 
@@ -20,6 +20,18 @@ import {
   SidekickClientEvent,
   SidekickEventHandler
 } from '../interfaces/sidekick-client';
+
+// NEW: Interface for sidekick selection with preferred name
+export interface SidekickSelectionWithName {
+  sidekickId: string;
+  preferredName: string;
+  preferences?: SidekickPreferences;
+}
+
+// NEW: Interface for preferred name update
+export interface PreferredNameUpdate {
+  preferredName: string;
+}
 
 /**
  * Main Sidekick Client SDK
@@ -46,6 +58,7 @@ export class SidekickClient implements ISidekickClient {
     Object.values([
       'selection_changed',
       'preferences_updated',
+      'preferred_name_updated', // NEW: Event for preferred name changes
       'error',
       'network_error',
       'auth_error',
@@ -111,7 +124,11 @@ export class SidekickClient implements ISidekickClient {
       }>('/api/sidekicks/recommended', 'GET', undefined, context);
 
       const recommendations = response.data?.recommendations || [];
-      this.emitEvent('recommendation_received', { recommendations, count: recommendations.length });
+
+      this.emitEvent('recommendation_received', { 
+        count: recommendations.length,
+        context: response.data?.context 
+      });
 
       return recommendations;
     } catch (error) {
@@ -120,8 +137,104 @@ export class SidekickClient implements ISidekickClient {
     }
   }
 
-  async getSidekickById(id: string): Promise<SidekickPersona> {
-    const cacheKey = `sidekick_${id}`;
+  // Legacy selection method (maintains backward compatibility)
+  async selectSidekick(sidekickId: string, preferences?: SidekickPreferences): Promise<UserSidekickSelection> {
+    try {
+      const response = await this.makeRequest<{
+        selection: UserSidekickSelection;
+        message: string;
+      }>('/api/sidekicks/select', 'POST', { sidekickId, preferences });
+
+      const selection = response.data?.selection;
+      if (!selection) {
+        throw new Error('Invalid response from server');
+      }
+
+      this.clearCacheByPattern('available_sidekicks_');
+      this.emitEvent('selection_changed', { selection, method: 'legacy' });
+
+      return selection;
+    } catch (error) {
+      this.handleError(error as Error);
+      throw error;
+    }
+  }
+
+  // NEW: Select sidekick with preferred name
+  async selectSidekickWithName(selectionData: SidekickSelectionWithName): Promise<UserSidekickSelection> {
+    try {
+      // Validate preferred name before sending
+      const validation = this.validatePreferredName(selectionData.preferredName);
+      if (!validation.isValid) {
+        throw new SidekickError(
+          'VALIDATION_ERROR',
+          `Invalid preferred name: ${validation.errors.join(', ')}`
+        );
+      }
+
+      const response = await this.makeRequest<{
+        selection: UserSidekickSelection;
+        message: string;
+      }>('/api/sidekicks/select-with-name', 'POST', selectionData);
+
+      const selection = response.data?.selection;
+      if (!selection) {
+        throw new Error('Invalid response from server');
+      }
+
+      this.clearCacheByPattern('available_sidekicks_');
+      this.clearCache('current_selection');
+
+      this.emitEvent('selection_changed', { 
+        selection, 
+        method: 'with_name',
+        preferredName: selectionData.preferredName 
+      });
+
+      return selection;
+    } catch (error) {
+      this.handleError(error as Error);
+      throw error;
+    }
+  }
+
+  // NEW: Update preferred name for current selection
+  async updatePreferredName(preferredName: string): Promise<void> {
+    try {
+      // Validate preferred name before sending
+      const validation = this.validatePreferredName(preferredName);
+      if (!validation.isValid) {
+        throw new SidekickError(
+          'VALIDATION_ERROR',
+          `Invalid preferred name: ${validation.errors.join(', ')}`
+        );
+      }
+
+      const response = await this.makeRequest<{
+        preferredName: string;
+        message: string;
+      }>('/api/sidekicks/preferred-name', 'PUT', { preferredName });
+
+      this.clearCache('current_selection');
+
+      this.emitEvent('preferred_name_updated', { 
+        preferredName: response.data?.preferredName || preferredName,
+        message: response.data?.message 
+      });
+
+    } catch (error) {
+      this.handleError(error as Error);
+      throw error;
+    }
+  }
+
+  // NEW: Get current selection with preferred name
+  async getCurrentSelection(): Promise<{
+    hasSelection: boolean;
+    currentSidekick?: SidekickPersona;
+    selectionData?: UserSidekickSelection;
+  }> {
+    const cacheKey = 'current_selection';
 
     if (this.config.enableCaching) {
       const cached = this.getFromCache(cacheKey);
@@ -131,137 +244,127 @@ export class SidekickClient implements ISidekickClient {
     }
 
     try {
-      const response = await this.makeRequest<SidekickPersona>(`/api/sidekicks/${id}`, 'GET');
-
-      if (!response.data) {
-        throw new SidekickError('Sidekick not found', 'SIDEKICK_NOT_FOUND', 404);
-      }
-
-      if (this.config.enableCaching) {
-        this.setCache(cacheKey, response.data);
-      }
-
-      return response.data;
-    } catch (error) {
-      this.handleError(error as Error);
-      throw error;
-    }
-  }
-
-  async searchSidekicks(query: string, filters?: SidekickFilters): Promise<SidekickPersona[]> {
-    try {
-      const searchParams = { query, ...filters };
       const response = await this.makeRequest<{
-        sidekicks: SidekickPersona[];
-        count: number;
-      }>('/api/sidekicks/search', 'GET', undefined, searchParams);
-
-      return response.data?.sidekicks || [];
-    } catch (error) {
-      this.handleError(error as Error);
-      throw error;
-    }
-  }
-
-  // Selection Management
-  async selectSidekick(sidekickId: string, preferences: SidekickPreferences): Promise<UserSidekickSelection> {
-    try {
-      const response = await this.makeRequest<{
-        selection: UserSidekickSelection;
-        message: string;
-      }>('/api/sidekicks/select', 'POST', { sidekickId, preferences });
-
-      if (!response.data?.selection) {
-        throw new SidekickError('Failed to create selection', 'SELECTION_FAILED', 500);
-      }
-
-      // Clear cache for current selection
-      this.removeFromCache('current_selection');
-      this.removeFromCache('available_sidekicks_*');
-
-      this.emitEvent('selection_changed', response.data.selection);
-
-      if (this.config.enableAnalytics) {
-        this.trackEvent('sidekick_selected', { sidekickId, preferences });
-      }
-
-      return response.data.selection;
-    } catch (error) {
-      this.handleError(error as Error);
-      throw error;
-    }
-  }
-
-  async getCurrentSelection(): Promise<UserSidekickSelection | null> {
-    const cacheKey = 'current_selection';
-
-    if (this.config.enableCaching) {
-      const cached = this.getFromCache(cacheKey);
-      if (cached !== undefined) {
-        return cached;
-      }
-    }
-
-    try {
-      const response = await this.makeRequest<{
-        selection: UserSidekickSelection | null;
         hasSelection: boolean;
+        currentSidekick?: SidekickPersona;
+        selectionData?: UserSidekickSelection;
       }>('/api/sidekicks/current', 'GET');
 
-      const selection = response.data?.selection || null;
+      const selectionStatus = response.data || { hasSelection: false };
 
       if (this.config.enableCaching) {
-        this.setCache(cacheKey, selection);
+        this.setCache(cacheKey, selectionStatus);
       }
 
-      return selection;
+      return selectionStatus;
     } catch (error) {
       this.handleError(error as Error);
       throw error;
     }
   }
 
-  async updatePreferences(preferences: Partial<SidekickPreferences>): Promise<void> {
-    try {
-      await this.makeRequest('/api/sidekicks/preferences', 'PUT', { preferences });
-
-      // Clear current selection cache
-      this.removeFromCache('current_selection');
-
-      this.emitEvent('preferences_updated', preferences);
-
-      if (this.config.enableAnalytics) {
-        this.trackEvent('preferences_updated', preferences);
-      }
-    } catch (error) {
-      this.handleError(error as Error);
-      throw error;
-    }
-  }
-
-  async getSelectionHistory(limit: number = 10): Promise<UserSidekickSelection[]> {
+  // NEW: Remove current sidekick selection
+  async removeSelection(): Promise<void> {
     try {
       const response = await this.makeRequest<{
-        history: UserSidekickSelection[];
-        count: number;
-        limit: number;
-      }>('/api/sidekicks/history', 'GET', undefined, { limit });
+        message: string;
+      }>('/api/sidekicks/selection', 'DELETE');
 
-      return response.data?.history || [];
+      this.clearCache('current_selection');
+      this.clearCacheByPattern('available_sidekicks_');
+
+      this.emitEvent('selection_changed', { 
+        selection: null, 
+        method: 'removed',
+        message: response.data?.message 
+      });
+
     } catch (error) {
       this.handleError(error as Error);
       throw error;
     }
   }
 
-  // Events
-  addEventListener(event: SidekickClientEvent, handler: SidekickEventHandler): void {
+  // NEW: Validate preferred name on client side
+  validatePreferredName(preferredName: string): {
+    isValid: boolean;
+    errors: string[];
+    sanitizedName?: string;
+  } {
+    const errors: string[] = [];
+
+    if (!preferredName || typeof preferredName !== 'string') {
+      errors.push('Preferred name is required');
+      return { isValid: false, errors };
+    }
+
+    const trimmedName = preferredName.trim();
+
+    if (trimmedName.length < 1) {
+      errors.push('Preferred name must be at least 1 character long');
+    }
+
+    if (trimmedName.length > 50) {
+      errors.push('Preferred name must be 50 characters or less');
+    }
+
+    const validNamePattern = /^[a-zA-Z0-9\s\-']+$/;
+    if (!validNamePattern.test(trimmedName)) {
+      errors.push('Preferred name contains invalid characters. Only letters, numbers, spaces, hyphens, and apostrophes are allowed');
+    }
+
+    if (/\s{2,}/.test(trimmedName)) {
+      errors.push('Preferred name cannot contain multiple consecutive spaces');
+    }
+
+    if (trimmedName !== preferredName) {
+      errors.push('Preferred name cannot start or end with spaces');
+    }
+
+    const sanitizedName = trimmedName
+      .replace(/\s+/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase());
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      sanitizedName: errors.length === 0 ? sanitizedName : undefined
+    };
+  }
+
+  // Analytics (Enhanced for preferredName tracking)
+  async trackSidekickInteraction(event: string, data?: any): Promise<void> {
+    if (!this.config.enableAnalytics) return;
+
+    try {
+      const analyticsData = {
+        event,
+        timestamp: new Date().toISOString(),
+        userId: this.config.userId,
+        sessionId: this.config.sessionId,
+        ...data
+      };
+
+      // Enhanced analytics for preferred name events
+      if (event === 'preferred_name_updated' || event === 'selection_with_name') {
+        analyticsData.hasPreferredName = !!data?.preferredName;
+        analyticsData.preferredNameLength = data?.preferredName?.length || 0;
+      }
+
+      await this.makeRequest('/api/analytics/sidekick-interaction', 'POST', analyticsData);
+    } catch (error) {
+      console.warn('Analytics tracking failed:', error);
+    }
+  }
+
+  // Event Management
+  on(event: SidekickClientEvent, handler: SidekickEventHandler): void {
     const handlers = this.eventHandlers.get(event) || [];
     handlers.push(handler);
     this.eventHandlers.set(event, handlers);
   }
 
-  removeEventListener(event: SidekickClientEvent, handler: SidekickEventHandler): void {
+  off(event: SidekickClientEvent, handler: SidekickEventHandler): void {
     const handlers = this.eventHandlers.get(event) || [];
     const index = handlers.indexOf(handler);
     if (index > -1) {
@@ -270,25 +373,63 @@ export class SidekickClient implements ISidekickClient {
     }
   }
 
-  // Private methods
+  private emitEvent(event: SidekickClientEvent, data?: any): void {
+    const handlers = this.eventHandlers.get(event) || [];
+    handlers.forEach(handler => {
+      try {
+        handler(data);
+      } catch (error) {
+        console.error(`Event handler error for ${event}:`, error);
+      }
+    });
+  }
+
+  // Cache Management
+  private getFromCache(key: string): any | null {
+    const cached = this.cache.get(key);
+    if (cached && cached.expiry > Date.now()) {
+      return cached.data;
+    }
+    if (cached) {
+      this.cache.delete(key);
+    }
+    return null;
+  }
+
+  private setCache(key: string, data: any): void {
+    this.cache.set(key, {
+      data,
+      expiry: Date.now() + this.config.cacheTimeout
+    });
+  }
+
+  private clearCache(key: string): void {
+    this.cache.delete(key);
+  }
+
+  private clearCacheByPattern(pattern: string): void {
+    for (const key of this.cache.keys()) {
+      if (key.includes(pattern)) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  // HTTP Client
   private async makeRequest<T>(
     endpoint: string,
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     body?: any,
-    queryParams?: Record<string, any>
+    params?: Record<string, any>
   ): Promise<SidekickAPIResponse<T>> {
-    let url = `${this.config.apiBaseUrl}${endpoint}`;
+    const url = new URL(endpoint, this.config.baseURL);
 
-    if (queryParams) {
-      const searchParams = new URLSearchParams();
-      Object.entries(queryParams).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          searchParams.append(key, String(value));
+    if (params && method === 'GET') {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          url.searchParams.append(key, String(value));
         }
       });
-      if (searchParams.toString()) {
-        url += `?${searchParams.toString()}`;
-      }
     }
 
     const headers: Record<string, string> = {
@@ -296,59 +437,43 @@ export class SidekickClient implements ISidekickClient {
     };
 
     if (this.config.authToken) {
-      headers['Authorization'] = `Bearer ${this.config.authToken}`;
-    }
-
-    if (this.config.apiKey) {
-      headers['X-API-Key'] = this.config.apiKey;
+      headers.Authorization = `Bearer ${this.config.authToken}`;
     }
 
     const requestConfig: RequestInit = {
       method,
       headers,
-      signal: AbortSignal.timeout(this.config.timeout || 10000)
+      signal: AbortSignal.timeout(this.config.timeout)
     };
 
     if (body && method !== 'GET') {
       requestConfig.body = JSON.stringify(body);
     }
 
-    let lastError: Error | null = null;
+    let lastError: Error | undefined;
 
-    for (let attempt = 1; attempt <= (this.config.retryAttempts || 1); attempt++) {
+    for (let attempt = 0; attempt <= this.config.retryAttempts; attempt++) {
       try {
-        const response = await fetch(url, requestConfig);
+        const response = await fetch(url.toString(), requestConfig);
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
           throw new SidekickError(
-            errorData.message || `HTTP ${response.status}: ${response.statusText}`,
-            errorData.code || 'HTTP_ERROR',
-            response.status,
-            errorData
+            response.status === 401 ? 'AUTH_ERROR' : 'API_ERROR',
+            `HTTP ${response.status}: ${response.statusText}`
           );
         }
 
         const data: SidekickAPIResponse<T> = await response.json();
-
-        if (!data.success) {
-          throw new SidekickError(
-            data.error || 'Request failed',
-            'API_ERROR',
-            500,
-            data
-          );
-        }
-
         return data;
+
       } catch (error) {
         lastError = error as Error;
 
-        if (attempt === (this.config.retryAttempts || 1)) {
+        if (attempt === this.config.retryAttempts) {
           break;
         }
 
-        // Wait before retry with exponential backoff
+        // Exponential backoff
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
       }
     }
@@ -356,97 +481,38 @@ export class SidekickClient implements ISidekickClient {
     throw lastError;
   }
 
-  private emitEvent(event: SidekickClientEvent, data: any): void {
-    const handlers = this.eventHandlers.get(event) || [];
-    handlers.forEach(handler => {
-      try {
-        handler(data);
-      } catch (error) {
-        console.error(`Error in event handler for ${event}:`, error);
-      }
-    });
-  }
-
   private handleError(error: Error): void {
-    this.emitEvent('error', error);
-
-    if (error.name === 'AbortError' || error.message.includes('fetch')) {
+    if (error instanceof SidekickError) {
+      if (error.code === 'AUTH_ERROR') {
+        this.emitEvent('auth_error', error);
+      } else {
+        this.emitEvent('error', error);
+      }
+    } else {
       this.emitEvent('network_error', error);
     }
 
-    if (error instanceof SidekickError && error.statusCode === 401) {
-      this.emitEvent('auth_error', error);
-    }
-  }
-
-  private getFromCache(key: string): any | null {
-    if (!this.config.enableCaching) return null;
-
-    const entry = this.cache.get(key);
-    if (!entry) return null;
-
-    if (Date.now() > entry.expiry) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    return entry.data;
-  }
-
-  private setCache(key: string, data: any): void {
-    if (!this.config.enableCaching) return;
-
-    this.cache.set(key, {
-      data,
-      expiry: Date.now() + (this.config.cacheTimeout || 300000)
-    });
-  }
-
-  private removeFromCache(pattern: string): void {
-    if (pattern.endsWith('*')) {
-      const prefix = pattern.slice(0, -1);
-      for (const key of this.cache.keys()) {
-        if (key.startsWith(prefix)) {
-          this.cache.delete(key);
-        }
-      }
-    } else {
-      this.cache.delete(pattern);
-    }
-  }
-
-  private trackEvent(event: string, data: any): void {
-    // Implement analytics tracking
-    if (typeof window !== 'undefined' && (window as any).analytics) {
-      (window as any).analytics.track(`Sidekick ${event}`, data);
+    if (this.config.enableAnalytics) {
+      this.trackSidekickInteraction('error', {
+        error: error.message,
+        type: error.constructor.name
+      }).catch(console.warn);
     }
   }
 }
 
-/**
- * Create a configured sidekick client instance
- */
-export function createSidekickClient(config: SidekickClientConfig): SidekickClient {
-  return new SidekickClient(config);
-}
-
-/**
- * Default client instance (singleton)
- */
-let defaultClient: SidekickClient | null = null;
-
-export function getDefaultSidekickClient(): SidekickClient {
-  if (!defaultClient) {
-    throw new Error('Default sidekick client not initialized. Call initializeSidekickClient first.');
-  }
-  return defaultClient;
-}
-
-export function initializeSidekickClient(config: SidekickClientConfig): SidekickClient {
-  defaultClient = new SidekickClient(config);
-  return defaultClient;
-}
-
-export function resetSidekickClient(): void {
-  defaultClient = null;
-}
+// Export types
+export {
+  SidekickPersona,
+  UserSidekickSelection,
+  SidekickPreferences,
+  SidekickSelectionContext,
+  SidekickFilters,
+  SubscriptionTier,
+  SidekickAPIResponse,
+  SidekickError,
+  ISidekickClient,
+  SidekickClientConfig,
+  SidekickClientEvent,
+  SidekickEventHandler
+};
