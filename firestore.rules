@@ -156,5 +156,41 @@ service cloud.firestore {
       allow read, write: if false;
     }
   }
-}
 
+
+    // Sidekick Selection Rules
+    match /sidekicks/{sidekickId} {
+      // Allow all authenticated users to read sidekicks
+      allow read: if request.auth != null;
+
+      // Only admins can create, update, or delete sidekicks
+      allow create, update, delete: if request.auth != null && 
+        request.auth.token.admin == true;
+    }
+
+    match /userSidekickSelections/{selectionId} {
+      // Users can only access their own selections
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+
+      // Allow users to create new selections for themselves
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId &&
+        validateSidekickSelection();
+    }
+
+    // Helper function to validate sidekick selection data
+    function validateSidekickSelection() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['userId', 'selectedSidekickId', 'selectionDate', 
+                               'isActive', 'preferences', 'subscriptionTier']) &&
+             data.userId is string &&
+             data.selectedSidekickId is string &&
+             data.selectionDate is timestamp &&
+             data.isActive is bool &&
+             data.preferences is map &&
+             data.subscriptionTier in ['free', 'premium', 'pro'];
+    }
+
+  }
+}

@@ -393,3 +393,88 @@ export const ValidationSchemas = {
   }
 };
 
+
+
+// Sidekick Selection Validation
+export const validateSidekickSelection = (req: Request, res: Response, next: NextFunction) => {
+  const { sidekickId, preferences } = req.body;
+
+  const errors: string[] = [];
+
+  // Validate sidekickId
+  if (!sidekickId) {
+    errors.push('sidekickId is required');
+  } else if (typeof sidekickId !== 'string' || sidekickId.trim().length === 0) {
+    errors.push('sidekickId must be a non-empty string');
+  }
+
+  // Validate preferences
+  if (!preferences) {
+    errors.push('preferences is required');
+  } else {
+    if (typeof preferences !== 'object') {
+      errors.push('preferences must be an object');
+    } else {
+      if (typeof preferences.notifications !== 'boolean') {
+        errors.push('preferences.notifications must be a boolean');
+      }
+      if (typeof preferences.voiceEnabled !== 'boolean') {
+        errors.push('preferences.voiceEnabled must be a boolean');
+      }
+      if (typeof preferences.realtimeUpdates !== 'boolean') {
+        errors.push('preferences.realtimeUpdates must be a boolean');
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      details: errors
+    });
+  }
+
+  next();
+};
+
+export const validatePreferencesUpdate = (req: Request, res: Response, next: NextFunction) => {
+  const { preferences } = req.body;
+
+  const errors: string[] = [];
+
+  if (!preferences) {
+    errors.push('preferences is required');
+  } else if (typeof preferences !== 'object') {
+    errors.push('preferences must be an object');
+  } else {
+    // Validate each provided preference (partial update)
+    if ('notifications' in preferences && typeof preferences.notifications !== 'boolean') {
+      errors.push('preferences.notifications must be a boolean');
+    }
+    if ('voiceEnabled' in preferences && typeof preferences.voiceEnabled !== 'boolean') {
+      errors.push('preferences.voiceEnabled must be a boolean');
+    }
+    if ('realtimeUpdates' in preferences && typeof preferences.realtimeUpdates !== 'boolean') {
+      errors.push('preferences.realtimeUpdates must be a boolean');
+    }
+
+    // Ensure at least one preference is being updated
+    const validKeys = ['notifications', 'voiceEnabled', 'realtimeUpdates'];
+    const hasValidUpdate = Object.keys(preferences).some(key => validKeys.includes(key));
+
+    if (!hasValidUpdate) {
+      errors.push('At least one valid preference must be provided');
+    }
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      details: errors
+    });
+  }
+
+  next();
+};

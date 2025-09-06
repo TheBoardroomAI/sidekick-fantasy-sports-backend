@@ -267,3 +267,229 @@ async function getAverageResponseTime(): Promise<number> {
   return 0;
 }
 
+
+
+// ============================================================================
+// SIDEKICK SELECTION CLOUD FUNCTIONS
+// ============================================================================
+
+/**
+ * Initialize default sidekicks in the database
+ */
+export const initializeDefaultSidekicks = functions.https.onCall(async (data, context) => {
+  try {
+    // Verify admin privileges
+    if (!context.auth?.token?.admin) {
+      throw new functions.https.HttpsError('permission-denied', 'Admin privileges required');
+    }
+
+    await sidekickSelectionManager.initializeDefaultSidekicks();
+
+    return {
+      success: true,
+      message: 'Default sidekicks initialized successfully'
+    };
+  } catch (error) {
+    logger.error('Error initializing default sidekicks:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to initialize default sidekicks');
+  }
+});
+
+/**
+ * Get available sidekicks for a user
+ */
+export const getAvailableSidekicks = functions.https.onCall(async (data, context) => {
+  try {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    const { tier = 'free' } = data;
+    const userId = context.auth.uid;
+
+    const sidekicks = await sidekickSelectionManager.getAvailableSidekicks(userId, tier);
+
+    return {
+      success: true,
+      data: {
+        sidekicks,
+        count: sidekicks.length,
+        tier
+      }
+    };
+  } catch (error) {
+    logger.error('Error getting available sidekicks:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to retrieve available sidekicks');
+  }
+});
+
+/**
+ * Get recommended sidekicks for a user
+ */
+export const getRecommendedSidekicks = functions.https.onCall(async (data, context) => {
+  try {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    const userId = context.auth.uid;
+    const { preferredSports = ['NFL'], currentSubscription = { tier: 'free' } } = data;
+
+    const recommendationContext: SidekickSelectionContext = {
+      userProfile: context.auth,
+      currentSubscription,
+      preferredSports,
+      usageHistory: [] // This would be fetched from user analytics
+    };
+
+    const recommendations = await sidekickSelectionManager.getRecommendedSidekicks(userId, recommendationContext);
+
+    return {
+      success: true,
+      data: {
+        recommendations,
+        count: recommendations.length,
+        context: {
+          preferredSports,
+          subscriptionTier: currentSubscription.tier
+        }
+      }
+    };
+  } catch (error) {
+    logger.error('Error getting recommended sidekicks:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to generate recommendations');
+  }
+});
+
+/**
+ * Select a sidekick for the user
+ */
+export const selectSidekick = functions.https.onCall(async (data, context) => {
+  try {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    const { sidekickId, preferences } = data;
+    const userId = context.auth.uid;
+
+    if (!sidekickId || !preferences) {
+      throw new functions.https.HttpsError('invalid-argument', 'sidekickId and preferences are required');
+    }
+
+    const selection = await sidekickSelectionManager.selectSidekick(userId, sidekickId, preferences);
+
+    return {
+      success: true,
+      data: {
+        selection,
+        message: 'Sidekick selected successfully'
+      }
+    };
+  } catch (error) {
+    logger.error('Error selecting sidekick:', error);
+
+    if (error.message.includes('not found')) {
+      throw new functions.https.HttpsError('not-found', error.message);
+    }
+    if (error.message.includes('not available')) {
+      throw new functions.https.HttpsError('failed-precondition', error.message);
+    }
+    if (error.message.includes('Insufficient subscription')) {
+      throw new functions.https.HttpsError('permission-denied', error.message);
+    }
+
+    throw new functions.https.HttpsError('internal', 'Failed to select sidekick');
+  }
+});
+
+/**
+ * Get current sidekick selection for user
+ */
+export const getCurrentSidekickSelection = functions.https.onCall(async (data, context) => {
+  try {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    const userId = context.auth.uid;
+    const currentSelection = await sidekickSelectionManager.getCurrentSelection(userId);
+
+    return {
+      success: true,
+      data: {
+        selection: currentSelection,
+        hasSelection: !!currentSelection
+      }
+    };
+  } catch (error) {
+    logger.error('Error getting current selection:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to retrieve current selection');
+  }
+});
+
+/**
+ * Update sidekick preferences
+ */
+export const updateSidekickPreferences = functions.https.onCall(async (data, context) => {
+  try {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    const { preferences } = data;
+    const userId = context.auth.uid;
+
+    if (!preferences) {
+      throw new functions.https.HttpsError('invalid-argument', 'preferences are required');
+    }
+
+    await sidekickSelectionManager.updatePreferences(userId, preferences);
+
+    return {
+      success: true,
+      message: 'Preferences updated successfully',
+      data: { preferences }
+    };
+  } catch (error) {
+    logger.error('Error updating preferences:', error);
+
+    if (error.message.includes('No active sidekick')) {
+      throw new functions.https.HttpsError('not-found', error.message);
+    }
+
+    throw new functions.https.HttpsError('internal', 'Failed to update preferences');
+  }
+});
+
+/**
+ * Get sidekick selection history
+ */
+export const getSidekickSelectionHistory = functions.https.onCall(async (data, context) => {
+  try {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    const userId = context.auth.uid;
+    const { limit = 10 } = data;
+
+    if (limit > 50) {
+      throw new functions.https.HttpsError('invalid-argument', 'Limit cannot exceed 50');
+    }
+
+    const history = await sidekickSelectionManager.getSelectionHistory(userId, limit);
+
+    return {
+      success: true,
+      data: {
+        history,
+        count: history.length,
+        limit
+      }
+    };
+  } catch (error) {
+    logger.error('Error getting selection history:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to retrieve selection history');
+  }
+});
